@@ -14,12 +14,22 @@
 }
 
 .stage-mode-label {
-  margin-right: auto;
   color: #7c8e75;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: .07em;
   text-transform: uppercase;
+}
+
+.stage-stars-total {
+  margin-right: auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #fff8d9;
+  color: #8a7137;
+  font-size: 8px;
+  font-weight: 750;
+  white-space: nowrap;
 }
 
 .stage-mode button {
@@ -59,14 +69,29 @@
   gap: 10px;
 }
 
+.stage-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
 .stage-number {
   color: #365d3c;
   font-size: 11px;
   line-height: 1.2;
 }
 
+.stage-best-stars {
+  color: #c29a3d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+
 .stage-select {
-  max-width: 112px;
+  max-width: 150px;
   height: 28px;
   padding: 0 26px 0 8px;
   border: 1px solid #d5dec7;
@@ -88,10 +113,18 @@
 }
 
 .stage-goal {
-  margin: 3px 0 7px;
+  margin: 3px 0 4px;
   color: #53664f;
   font-size: 9.5px;
   line-height: 1.4;
+}
+
+.stage-star-goals {
+  margin: 0 0 8px;
+  color: #9a7a38;
+  font-size: 7.5px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .stage-progress-row {
@@ -115,6 +148,38 @@
   white-space: nowrap;
 }
 
+.stage-result-stars {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: -4px 0 8px;
+  padding: 8px 14px;
+  border: 1px solid #eadcae;
+  border-radius: 14px;
+  background: #fffaf0;
+}
+
+.stage-result-stars[hidden] {
+  display: none;
+}
+
+.stage-result-star-icons {
+  color: #c69b34;
+  font-family: var(--font-ui, system-ui, sans-serif);
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: .12em;
+  text-shadow: 0 2px 0 rgba(255,255,255,.8);
+}
+
+.stage-result-star-summary {
+  color: #877443;
+  font-size: 8px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: center;
+}
+
 html:lang(vi) .stage-mode-label,
 html:lang(vi) .stage-goal-label {
   letter-spacing: .025em;
@@ -136,6 +201,10 @@ html:lang(vi) .stage-goal-label {
     display: none;
   }
 
+  .stage-stars-total {
+    margin-right: 2px;
+  }
+
   .stage-mode button {
     flex: 1 1 0;
     min-height: 32px;
@@ -145,11 +214,25 @@ html:lang(vi) .stage-goal-label {
     align-items: stretch;
   }
 
+  .stage-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
   .stage-select {
-    max-width: 128px;
+    max-width: 154px;
   }
 
   .stage-goal {
     font-size: 10px;
+  }
+
+  .stage-star-goals {
+    font-size: 8px;
+  }
+
+  .stage-result-star-icons {
+    font-size: 25px;
   }
 }
