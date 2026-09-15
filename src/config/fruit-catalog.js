@@ -9,6 +9,17 @@
   const fruits = Object.freeze(fruitData.map(([id, name, color]) => Object.freeze({ id, name, color })));
   const ids = Object.freeze(fruits.map(fruit => fruit.id));
   const names = Object.freeze(fruits.map(fruit => fruit.name));
-  const colors = Object.freeze(fruits.map(fruit => fruit.color));
-  window.MelonFruitCatalog = Object.freeze({ fruits, ids, names, colors, finalLevel: names.length - 1, logoLevel: names.length, atlasColumns: 4, atlasRows: 3 });
+  const fruitColors = fruits.map(fruit => fruit.color);
+  const logoLevel = names.length;
+  // The atlas has one extra brand cell after the 11 fruit cells. FruitPainter
+  // applies the same membrane treatment to icons, so this cell also needs a
+  // valid CSS color instead of indexing past the fruit palette.
+  const colors = Object.freeze([...fruitColors, '#426b47']);
+  window.MelonFruitCatalog = Object.freeze({
+    fruits, ids, names, colors,
+    finalLevel: names.length - 1,
+    logoLevel,
+    atlasColumns: 4,
+    atlasRows: 3,
+  });
 })();
