@@ -10,31 +10,49 @@ ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / 'index.html'
 LOCALES = ('en', 'vi', 'ja', 'ko')
 HAN = re.compile(r'[\u3400-\u9fff]')
+PLACEHOLDER = re.compile(r'\{([A-Za-z0-9_]+)\}')
+
 
 class TextCollector(HTMLParser):
     def __init__(self):
         super().__init__()
         self.skip = 0
         self.values = set()
+
     def handle_starttag(self, tag, attrs):
         if tag in {'script', 'style', 'code', 'pre'}:
             self.skip += 1
         for name, value in attrs:
             if name in {'aria-label', 'title', 'placeholder', 'alt'} and value and HAN.search(value):
                 self.values.add(value.strip())
+
     def handle_endtag(self, tag):
         if tag in {'script', 'style', 'code', 'pre'} and self.skip:
             self.skip -= 1
+
     def handle_data(self, data):
         value = data.strip()
         if not self.skip and value and HAN.search(value):
             self.values.add(value)
+
 
 def load_locale(locale):
     text = (ROOT / f'src/i18n/locales/{locale}.js').read_text(encoding='utf-8')
     match = re.search(r'Object\.freeze\((\{[\s\S]*\})\);\s*$', text)
     assert match, f'Cannot parse locale {locale}'
     return json.loads(match.group(1))
+
+
+def load_runtime_catalogs():
+    text = (ROOT / 'src/i18n/core.js').read_text(encoding='utf-8')
+    match = re.search(r'const RUNTIME_CATALOGS = (\{[\s\S]*?\n  \});', text)
+    assert match, 'Cannot parse RUNTIME_CATALOGS from src/i18n/core.js'
+    return json.loads(match.group(1))
+
+
+def placeholders(value):
+    return set(PLACEHOLDER.findall(value))
+
 
 html = INDEX.read_text(encoding='utf-8')
 assert INDEX.stat().st_size < 100_000, 'index.html regressed into a monolith'
@@ -52,9 +70,16 @@ atlas = ROOT / 'assets/fruit-atlas.png'
 assert atlas.read_bytes()[:8] == b'\x89PNG\r\n\x1a\n', 'fruit atlas is not a PNG'
 assert atlas.stat().st_size > 100_000, 'fruit atlas looks unexpectedly small'
 
-catalogs = {locale: load_locale(locale) for locale in LOCALES}
-keysets = {locale: set(catalog) for locale, catalog in catalogs.items()}
-assert len({frozenset(keys) for keys in keysets.values()}) == 1, 'locale catalogs must expose the same keys'
+base_catalogs = {locale: load_locale(locale) for locale in LOCALES}
+base_keysets = {locale: set(catalog) for locale, catalog in base_catalogs.items()}
+assert len({frozenset(keys) for keys in base_keysets.values()}) == 1, 'locale catalogs must expose the same base keys'
+
+runtime_catalogs = load_runtime_catalogs()
+assert {'zh-CN', *LOCALES} <= set(runtime_catalogs), 'runtime catalogs must cover every supported locale'
+catalogs = {
+    locale: {**base_catalogs[locale], **runtime_catalogs.get(locale, {})}
+    for locale in LOCALES
+}
 
 collector = TextCollector(); collector.feed(html)
 missing = {locale: sorted(value for value in collector.values if value not in catalogs[locale]) for locale in LOCALES}
@@ -67,7 +92,47 @@ required_dynamic = {
     '合成{fruit}，获得{points}分。', '这一局合成了 {count} 次。下次试着把大水果放在一侧，别把小水果埋在底下。',
     '首次接触 {time} s · 速度 {speed} px/s', '接触蓄力 {time} s',
     '完成合成 {time} s · 产生新水果', '果 {id}', '果 {id} · 宽 {width} / 高 {height} · W/H {ratio}',
+    '两颗{fruit}，合成{nextFruit}', '两颗{fruit}，合成一颗{nextFruit}。',
+    '本局结束，得分{score}。',
 }
 for locale, catalog in catalogs.items():
-    assert required_dynamic <= set(catalog), f'{locale} is missing dynamic translations'
-print(f'Validated {len(collector.values)} static translatable strings across {len(LOCALES)} locales.')
+    missing_dynamic = required_dynamic - set(catalog)
+    assert not missing_dynamic, f'{locale} is missing dynamic translations: {sorted(missing_dynamic)}'
+    for source in required_dynamic:
+        expected = placeholders(source)
+        actual = placeholders(catalog[source])
+        assert expected == actual, (
+            f'{locale} placeholder mismatch for {source!r}: '
+            f'missing={sorted(expected - actual)}, unexpected={sorted(actual - expected)}'
+        )
+
+# Regression guards for behavior that existed in the incremental PR and for
+# runtime failures found during deep review of this modular PR.
+core = (ROOT / 'src/i18n/core.js').read_text(encoding='utf-8')
+query_position = core.find("params.get('lang')")
+storage_position = core.find('localStorage.getItem(STORAGE_KEY)')
+assert 0 <= query_position < storage_position, '?lang= must override persisted/browser locale'
+assert 'renderText' in core and 'renderAttribute' in core, 'dynamic i18n bindings are required'
+assert 'history.replaceState' in core, 'language changes should keep a shareable ?lang= URL without reload'
+
+app = (ROOT / 'src/app.js').read_text(encoding='utf-8')
+assert 'const count = 0;' not in app, 'merge particles must not be permanently disabled'
+assert "Number(query.get('seed')) ||" not in app, 'seed=0 must remain deterministic'
+assert 'Number.isFinite(parsedSeed)' in app, 'seed parsing must distinguish valid zero from fallback'
+assert 'function readSettings' in app and "typeof parsed === 'object'" in app, 'persisted settings must be type-checked'
+for source in ('两颗{fruit}，合成{nextFruit}', '两颗{fruit}，合成一颗{nextFruit}。', '本局结束，得分{score}。'):
+    assert source in app, f'app must use source-keyed runtime message: {source}'
+assert "document.addEventListener('melon:localechange'" in app, 'HUD must refresh on locale changes'
+
+motion_lab = (ROOT / 'src/features/motion-lab.js').read_text(encoding='utf-8')
+assert "listen(document, 'melon:localechange'" in motion_lab, 'motion lab must redraw on locale changes'
+assert "latestEvent = { source:" in motion_lab, 'motion lab must preserve untranslated event sources'
+
+fruit_catalog = (ROOT / 'src/config/fruit-catalog.js').read_text(encoding='utf-8')
+assert 'const logoLevel = names.length;' in fruit_catalog, 'logo atlas level must remain the extra cell'
+assert 'Object.freeze([...fruitColors,' in fruit_catalog, 'logo atlas cell needs an explicit rendering color'
+
+print(
+    f'Validated {len(collector.values)} static strings, {len(required_dynamic)} dynamic messages, '
+    f'{len(LOCALES)} translated locales, and runtime regression guards.'
+)
