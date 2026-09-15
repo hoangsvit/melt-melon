@@ -11,6 +11,18 @@ INDEX = ROOT / 'index.html'
 LOCALES = ('en', 'vi', 'ja', 'ko')
 HAN = re.compile(r'[\u3400-\u9fff]')
 PLACEHOLDER = re.compile(r'\{([A-Za-z0-9_]+)\}')
+JS_STRING = re.compile(
+    r"(?P<quote>['\"`])(?P<body>(?:\\.|(?!\1)[\s\S])*?)(?P=quote)"
+)
+UI_RUNTIME_FILES = (
+    'src/app.js',
+    'src/features/motion-lab.js',
+    'src/features/softening-lesson.js',
+)
+INTERNAL_ONLY_STRINGS = {
+    '慢镜头弹窗尚未插入页面。',
+    '慢镜头需要 FruitPainter 实例。',
+}
 
 
 class TextCollector(HTMLParser):
@@ -54,6 +66,17 @@ def placeholders(value):
     return set(PLACEHOLDER.findall(value))
 
 
+def collect_ui_runtime_strings():
+    values = set()
+    for relative in UI_RUNTIME_FILES:
+        text = (ROOT / relative).read_text(encoding='utf-8')
+        for match in JS_STRING.finditer(text):
+            value = match.group('body').strip()
+            if value and HAN.search(value) and value not in INTERNAL_ONLY_STRINGS:
+                values.add(value)
+    return values
+
+
 html = INDEX.read_text(encoding='utf-8')
 assert INDEX.stat().st_size < 100_000, 'index.html regressed into a monolith'
 assert '<style' not in html.lower(), 'inline <style> is not allowed'
@@ -95,10 +118,13 @@ required_dynamic = {
     '两颗{fruit}，合成{nextFruit}', '两颗{fruit}，合成一颗{nextFruit}。',
     '本局结束，得分{score}。',
 }
+ui_runtime_strings = collect_ui_runtime_strings()
+all_dynamic_sources = required_dynamic | ui_runtime_strings
+
 for locale, catalog in catalogs.items():
-    missing_dynamic = required_dynamic - set(catalog)
-    assert not missing_dynamic, f'{locale} is missing dynamic translations: {sorted(missing_dynamic)}'
-    for source in required_dynamic:
+    missing_dynamic = all_dynamic_sources - set(catalog)
+    assert not missing_dynamic, f'{locale} is missing UI/runtime translations: {sorted(missing_dynamic)}'
+    for source in all_dynamic_sources:
         expected = placeholders(source)
         actual = placeholders(catalog[source])
         assert expected == actual, (
@@ -114,6 +140,7 @@ storage_position = core.find('localStorage.getItem(STORAGE_KEY)')
 assert 0 <= query_position < storage_position, '?lang= must override persisted/browser locale'
 assert 'renderText' in core and 'renderAttribute' in core, 'dynamic i18n bindings are required'
 assert 'history.replaceState' in core, 'language changes should keep a shareable ?lang= URL without reload'
+assert "compact: 'EN'" in core and "matchMedia?.('(max-width: 600px)')" in core, 'mobile locale picker must stay compact'
 
 app = (ROOT / 'src/app.js').read_text(encoding='utf-8')
 assert 'const count = 0;' not in app, 'merge particles must not be permanently disabled'
@@ -133,6 +160,6 @@ assert 'const logoLevel = names.length;' in fruit_catalog, 'logo atlas level mus
 assert 'Object.freeze([...fruitColors,' in fruit_catalog, 'logo atlas cell needs an explicit rendering color'
 
 print(
-    f'Validated {len(collector.values)} static strings, {len(required_dynamic)} dynamic messages, '
+    f'Validated {len(collector.values)} static strings, {len(all_dynamic_sources)} UI/runtime messages, '
     f'{len(LOCALES)} translated locales, and runtime regression guards.'
 )
