@@ -1,6 +1,14 @@
 (function () {
   'use strict';
-  const names = ['蓝莓', '葡萄', '樱桃', '橙子', '柠檬', '苹果', '猕猴桃', '蜜桃', '椰子', '哈密瓜', '西瓜'];
-  const colors = ['#6371ac', '#8760b0', '#d7475b', '#f69e38', '#efce53', '#ca5953', '#97ae51', '#edac99', '#b48b62', '#a9ba78', '#5d9970', '#e87977'];
-  window.MelonFruitCatalog = Object.freeze({ names: Object.freeze(names), colors: Object.freeze(colors), finalLevel: names.length - 1, logoLevel: names.length, atlasColumns: 4, atlasRows: 3 });
+  const fruitData = [
+    ['blueberry', '蓝莓', '#6371ac'], ['grape', '葡萄', '#8760b0'], ['cherry', '樱桃', '#d7475b'],
+    ['orange', '橙子', '#f69e38'], ['lemon', '柠檬', '#efce53'], ['apple', '苹果', '#ca5953'],
+    ['kiwi', '猕猴桃', '#97ae51'], ['peach', '蜜桃', '#edac99'], ['coconut', '椰子', '#b48b62'],
+    ['cantaloupe', '哈密瓜', '#a9ba78'], ['watermelon', '西瓜', '#5d9970'],
+  ];
+  const fruits = Object.freeze(fruitData.map(([id, name, color]) => Object.freeze({ id, name, color })));
+  const ids = Object.freeze(fruits.map(fruit => fruit.id));
+  const names = Object.freeze(fruits.map(fruit => fruit.name));
+  const colors = Object.freeze(fruits.map(fruit => fruit.color));
+  window.MelonFruitCatalog = Object.freeze({ fruits, ids, names, colors, finalLevel: names.length - 1, logoLevel: names.length, atlasColumns: 4, atlasRows: 3 });
 })();

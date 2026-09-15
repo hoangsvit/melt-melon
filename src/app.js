@@ -3,6 +3,8 @@
   const { names: FRUIT_NAMES, colors: FRUIT_COLORS, finalLevel: FINAL_LEVEL, logoLevel: LOGO_LEVEL } = MelonFruitCatalog;
   const STORAGE_KEY = 'soft-melon-club-v6';
   const byId = id => document.getElementById(id);
+  const t = (message, values) => window.MelonI18n.t(message, values);
+  const formatNumber = value => window.MelonI18n.formatNumber(value);
   const query = new URLSearchParams(location.search);
   const isQa = query.has('qa');
   let saved = {};
@@ -169,8 +171,8 @@
   function showResult(isWin) {
     byId('result-kicker').textContent = isWin ? '这颗大西瓜，属于你' : game.state.score >= bestScore && game.state.score > 0 ? '达到自己的最高纪录' : '这一池，收获满满';
     byId('result-title').textContent = isWin ? '合出来了！' : '果池装满啦。';
-    byId('result-score').textContent = game.state.score.toLocaleString('zh-CN');
-    byId('result-copy').textContent = isWin ? '还可以继续冲分。西瓜会留在果池里，不会消除。' : `这一局合成了 ${game.state.mergeCount} 次。下次试着把大水果放在一侧，别把小水果埋在底下。`;
+    byId('result-score').textContent = formatNumber(game.state.score);
+    byId('result-copy').textContent = isWin ? '还可以继续冲分。西瓜会留在果池里，不会消除。' : t('这一局合成了 {count} 次。下次试着把大水果放在一侧，别把小水果埋在底下。', { count: game.state.mergeCount });
     byId('result-secondary').hidden = !isWin;
     byId('result-secondary').textContent = '继续挑战';
     byId('result-secondary').className = isWin ? 'primary-button' : 'secondary-button';
@@ -207,7 +209,7 @@
         addMergeEffects(event); playSound('merge', Math.min(event.level, FINAL_LEVEL), event.combo);
         if (!reducedMotion) document.querySelectorAll('.fruit-step canvas')[Math.min(event.level, FINAL_LEVEL)]?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.25)', offset: .3 }, { transform: 'scale(1)' }], { duration: 400, easing: 'ease-out' });
         if (!isQa && game.state.score > bestScore) { bestScore = game.state.score; savePreferences(); }
-        say(`合成${FRUIT_NAMES[Math.min(event.level, FINAL_LEVEL)]}，获得${event.points}分。`);
+        say(t('合成{fruit}，获得{points}分。', { fruit: t(FRUIT_NAMES[Math.min(event.level, FINAL_LEVEL)]), points: event.points }));
         if (tutorialStage === 'drop' || tutorialStage === 'merge') {
           finishTutorial(); flashMessage('合成了！继续放，卡住时试试揉软。', 3);
         }
@@ -221,21 +223,21 @@
     if (!hasLoadedArt) return painter.assetError ? '水果图片未能载入，请重新打开文件。' : '图片准备中…';
     if (visualTime < transientUntil) return transientMessage;
     if (input.activePointerId !== null) return input.isInside ? '松手放下 · 拖出果池可取消' : '已移出果池，松手会取消';
-    if (game.state.liquidRemainingSeconds > 0) return `软乎乎的 · 还剩 ${game.state.liquidRemainingSeconds.toFixed(1)} 秒`;
+    if (game.state.liquidRemainingSeconds > 0) return t('软乎乎的 · 还剩 {seconds} 秒', { seconds: game.state.liquidRemainingSeconds.toFixed(1) });
     return tutorialStage === 'drop' ? '左右移动 · 松手放下第一颗' : '左右移动 · 松手投放';
   }
 
   function updateHud() {
     const state = game.state;
-    byId('score').textContent = state.score.toLocaleString('zh-CN'); byId('best').textContent = bestScore.toLocaleString('zh-CN');
-    byId('combo').textContent = state.combo > 1 && state.time - state.lastMergeTime < 1.15 ? `连续合成 ${state.combo} 次` : '';
+    byId('score').textContent = formatNumber(state.score); byId('best').textContent = formatNumber(bestScore);
+    byId('combo').textContent = state.combo > 1 && state.time - state.lastMergeTime < 1.15 ? t('连续合成 {count} 次', { count: state.combo }) : '';
     for (const id of ['tilt-left', 'tilt-right']) byId(id).disabled = !hasLoadedArt || state.isPaused || state.isOver || state.energy < .2;
     byId('energy').value = state.energy; byId('energy-value').textContent = Math.floor(state.energy);
     const isSoftening = state.liquidRemainingSeconds > 0, canAfford = state.energy >= game.options.softenCost;
     byId('soften-button').disabled = !hasLoadedArt || state.isPaused || state.isOver || isSoftening || !canAfford;
     byId('soften-button').classList.toggle('is-active', isSoftening);
     byId('soften-label').textContent = isSoftening ? '软乎乎的…' : canAfford ? '揉软一下' : '再攒一点能量';
-    byId('soften-detail').textContent = isSoftening ? `还有 ${state.liquidRemainingSeconds.toFixed(1)} 秒` : canAfford ? `挤进空隙 · 消耗 ${game.options.softenCost}` : `再合成 ${Math.ceil((game.options.softenCost - state.energy) / game.options.energyPerMerge)} 次就能用`;
+    byId('soften-detail').textContent = isSoftening ? t('还有 {seconds} 秒', { seconds: state.liquidRemainingSeconds.toFixed(1) }) : canAfford ? t('挤进空隙 · 消耗 {cost}', { cost: game.options.softenCost }) : t('再合成 {count} 次就能用', { count: Math.ceil((game.options.softenCost - state.energy) / game.options.energyPerMerge) });
     byId('board-message').textContent = currentHint();
     byId('pause-cover').hidden = !hasLoadedArt || !state.isPaused || Boolean(activeDialog);
     byId('pause-button').setAttribute('aria-label', state.isPaused ? '继续游戏' : '暂停游戏');
@@ -246,7 +248,7 @@
     byId('sound-button').setAttribute('aria-label', isSoundEnabled ? '关闭声音' : '开启声音');
     if (hasLoadedArt && lastNextLevel !== state.nextLevel) {
       lastNextLevel = state.nextLevel;
-      for (const id of ['next-fruit', 'next-mobile']) { painter.drawIcon(byId(id), state.nextLevel); byId(id).setAttribute('aria-label', `下一颗水果：${FRUIT_NAMES[state.nextLevel]}`); }
+      for (const id of ['next-fruit', 'next-mobile']) { painter.drawIcon(byId(id), state.nextLevel); byId(id).setAttribute('aria-label', t('下一颗水果：{fruit}', { fruit: t(FRUIT_NAMES[state.nextLevel]) })); }
       byId('next-name').textContent = FRUIT_NAMES[state.nextLevel];
     }
     if (lastHighestLevel !== state.highestLevel) {
@@ -277,7 +279,7 @@
     context.strokeStyle = '#faffed'; context.lineWidth = 6; context.stroke(); context.strokeStyle = '#d9e5c5'; context.lineWidth = 1.1; context.stroke();
     context.save(); context.setLineDash([6, 7]); context.lineWidth = 1.2; context.strokeStyle = state.dangerSeconds > 0 ? '#db7767' : '#c48e7547';
     context.beginPath(); context.moveTo(36, game.options.warningY); context.lineTo(424, game.options.warningY); context.stroke(); context.restore();
-    context.font = '8px "PingFang SC", sans-serif'; context.fillStyle = '#9cae8966'; context.fillText('留点空隙', 41, game.options.warningY - 9);
+    context.font = '8px "PingFang SC", sans-serif'; context.fillStyle = '#9cae8966'; context.fillText(t('留点空隙'), 41, game.options.warningY - 9);
     for (let tick = 0; tick < 6; tick++) {
       const y = 199 + tick * 62; context.strokeStyle = '#b5c7a13b'; context.lineWidth = .7; context.beginPath(); context.moveTo(33, y); context.lineTo(39, y); context.stroke();
     }

@@ -2,6 +2,7 @@
   'use strict';
 
   const WIDTH = 460, HEIGHT = 640, FRAME_SECONDS = 1 / 60;
+  const t = (message, values) => window.MelonI18n.t(message, values);
   const SCENES = {
     drop: { title: '单果落地', hint: '看下落加速、触地压缩，以及回弹后的余振。' },
     collision: { title: '大小碰撞', hint: '看小水果接触大水果时，两边的轮廓怎样变化。' },
@@ -41,7 +42,7 @@
       for (const button of speedButtons) button.setAttribute('aria-pressed', String(Number(button.dataset.motionSpeed) === playbackRate));
       pauseButton.textContent = isPaused ? '继续' : '暂停';
       pauseButton.setAttribute('aria-pressed', String(isPaused));
-      hintOutput.textContent = SCENES[sceneName].hint;
+      hintOutput.textContent = t(SCENES[sceneName].hint);
     }
 
     function resetScene(nextScene = sceneName) {
@@ -75,7 +76,7 @@
       if (contactMarkers.length > 8) contactMarkers.shift();
       if (!hasFirstContact) {
         hasFirstContact = true;
-        latestEvent = `首次接触 ${simulationTime.toFixed(3)} s · 速度 ${Math.round(impact.speed || 0)} px/s`;
+        latestEvent = t('首次接触 {time} s · 速度 {speed} px/s', { time: simulationTime.toFixed(3), speed: Math.round(impact.speed || 0) });
       }
     }
 
@@ -86,8 +87,8 @@
         for (const event of sceneGame.takeEvents()) {
           feedback.add(event);
           if (event.type === 'impact') recordImpact(event);
-          if (event.type === 'merge-start') latestEvent = `接触蓄力 ${elapsedSeconds().toFixed(3)} s`;
-          if (event.type === 'merge') latestEvent = `完成合成 ${elapsedSeconds().toFixed(3)} s · 产生新水果`;
+          if (event.type === 'merge-start') latestEvent = t('接触蓄力 {time} s', { time: elapsedSeconds().toFixed(3) });
+          if (event.type === 'merge') latestEvent = t('完成合成 {time} s · 产生新水果', { time: elapsedSeconds().toFixed(3) });
         }
       } else world.step(FRAME_SECONDS, { liquid: 0 });
       for (const impact of world.takeImpactEvents?.() || []) {
@@ -135,7 +136,7 @@
         painter.paint(context, body, { time: simulationTime, liquid: 0, reducedMotion });
         if (nodeCheckbox.checked) drawNodes(body);
         context.save(); context.font = '12px ui-monospace, monospace'; context.textAlign = 'center';
-        context.fillStyle = '#526647'; context.fillText(`果 ${body.id}`, body.x, Math.max(24, body.minY - 13)); context.restore();
+        context.fillStyle = '#526647'; context.fillText(t('果 {id}', { id: body.id }), body.x, Math.max(24, body.minY - 13)); context.restore();
       }
       feedback.draw(context, world.bodies, { reducedMotion, layer: 'over' });
       contactMarkers = contactMarkers.filter(marker => simulationTime - marker.time < .35);
@@ -149,7 +150,7 @@
       timeOutput.textContent = `${simulationTime.toFixed(3)} s`;
       const shapeText = world.bodies.map(body => {
         const width = body.maxX - body.minX, height = body.maxY - body.minY;
-        return `果 ${body.id} · 宽 ${width.toFixed(1)} / 高 ${height.toFixed(1)} · W/H ${(width / Math.max(height, .001)).toFixed(3)}`;
+        return t('果 {id} · 宽 {width} / 高 {height} · W/H {ratio}', { id: body.id, width: width.toFixed(1), height: height.toFixed(1), ratio: (width / Math.max(height, .001)).toFixed(3) });
       }).join('\n');
       if (shapeText !== lastShapeText) { shapeOutput.textContent = shapeText; lastShapeText = shapeText; }
       if (latestEvent !== lastEventText) { eventOutput.textContent = latestEvent; lastEventText = latestEvent; }

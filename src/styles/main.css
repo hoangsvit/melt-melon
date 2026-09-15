@@ -40,3 +40,32 @@
 /* Long combo labels use the space below the score, away from the record and preview. */
 .score-current b{left:0;bottom:-10px;margin-left:0;font-size:8px}
 @media(max-width:600px){.score-current strong{font-size:27px}.score-best strong{font-size:16px}}
+
+
+/* Language picker --------------------------------------------------------- */
+.language-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  min-height: 36px;
+  padding: 0 .55rem;
+  border: 1px solid color-mix(in srgb, #73845f 24%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #fffdf4 86%, transparent);
+  color: #55644b;
+  font-size: 12px;
+}
+.language-picker-icon { font-size: 13px; line-height: 1; }
+.language-picker select {
+  max-width: 112px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .language-picker { padding: 0 .4rem; }
+  .language-picker select { max-width: 88px; }
+}

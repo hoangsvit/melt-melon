@@ -230,7 +230,7 @@
       ctx.moveTo(205, 315); ctx.lineTo(205, 325);
       ctx.moveTo(255, 315); ctx.lineTo(255, 325); ctx.stroke();
       ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('有点窄', 230, 343);
+      ctx.fillText(window.MelonI18n.t('有点窄'), 230, 343);
       ctx.restore();
 
       if (this.painter && typeof this.painter.paint === 'function') {
