@@ -4,11 +4,11 @@
   const SOURCE_LOCALE = 'zh-CN';
   const STORAGE_KEY = 'melt-melon.locale';
   const LOCALES = Object.freeze([
-    { id: 'zh-CN', label: '中文' },
-    { id: 'en', label: 'English' },
-    { id: 'vi', label: 'Tiếng Việt' },
-    { id: 'ja', label: '日本語' },
-    { id: 'ko', label: '한국어' },
+    { id: 'zh-CN', label: '中文', compact: '中' },
+    { id: 'en', label: 'English', compact: 'EN' },
+    { id: 'vi', label: 'Tiếng Việt', compact: 'VI' },
+    { id: 'ja', label: '日本語', compact: '日' },
+    { id: 'ko', label: '한국어', compact: 'KO' },
   ]);
 
   // Dynamic/source corrections live here instead of being assembled from translated
@@ -21,6 +21,10 @@
       "西瓜，西瓜不会消除": "西瓜，西瓜不会消除",
       "西瓜不会消除，要给新水果留出空间。": "西瓜不会消除，要给新水果留出空间。",
       "本局结束，得分{score}。": "本局结束，得分{score}。",
+      "自在玩吧，随时可以点“玩法”。": "自在玩吧，随时可以点“玩法”。",
+      "已取消，这颗先留着。": "已取消，这颗先留着。",
+      "40 颗水果 · 渲染压力场景": "40 颗水果 · 渲染压力场景",
+      "检查透明外膜 · 桃子、椰子、苹果、柠檬": "检查透明外膜 · 桃子、椰子、苹果、柠檬",
       "两颗相同水果碰到一起，变成下一种水果。共十一级，下一颗随机来自前五级；连续合成会多得分。": "两颗相同水果碰到一起，变成下一种水果。共十一级，下一颗随机来自前五级；连续合成只显示连击提示，不会额外加分。"
     },
     "en": {
@@ -30,6 +34,10 @@
       "西瓜，西瓜不会消除": "Watermelon. Watermelons do not disappear.",
       "西瓜不会消除，要给新水果留出空间。": "Watermelons do not disappear, so leave room for new fruit.",
       "本局结束，得分{score}。": "Round over. Score: {score}.",
+      "自在玩吧，随时可以点“玩法”。": "Play freely — you can open the guide any time.",
+      "已取消，这颗先留着。": "Cancelled. Keep this fruit for now.",
+      "40 颗水果 · 渲染压力场景": "40 fruit · rendering stress scene",
+      "检查透明外膜 · 桃子、椰子、苹果、柠檬": "Check transparent shells · peach, coconut, apple, lemon",
       "两颗相同水果碰到一起，变成下一种水果。共十一级，下一颗随机来自前五级；连续合成会多得分。": "Two matching fruits become the next fruit. There are 11 levels, and the next fruit is randomly chosen from the first five. Chain merges show combo feedback but do not award bonus points."
     },
     "vi": {
@@ -39,6 +47,10 @@
       "西瓜，西瓜不会消除": "Dưa hấu. Dưa hấu sẽ không biến mất.",
       "西瓜不会消除，要给新水果留出空间。": "Dưa hấu không biến mất, hãy chừa chỗ cho trái mới.",
       "本局结束，得分{score}。": "Ván chơi kết thúc. Điểm: {score}.",
+      "自在玩吧，随时可以点“玩法”。": "Cứ chơi thoải mái — bạn có thể mở Hướng dẫn bất cứ lúc nào.",
+      "已取消，这颗先留着。": "Đã hủy. Tạm giữ trái này lại.",
+      "40 颗水果 · 渲染压力场景": "40 trái · cảnh kiểm tra tải hiển thị",
+      "检查透明外膜 · 桃子、椰子、苹果、柠檬": "Kiểm tra màng trong · đào, dừa, táo, chanh",
       "两颗相同水果碰到一起，变成下一种水果。共十一级，下一颗随机来自前五级；连续合成会多得分。": "Hai trái giống nhau chạm nhau sẽ ghép thành cấp tiếp theo. Có 11 cấp và trái tiếp theo được chọn ngẫu nhiên từ 5 cấp đầu. Chuỗi ghép chỉ hiện hiệu ứng combo, không cộng thêm điểm thưởng."
     },
     "ja": {
@@ -48,6 +60,10 @@
       "西瓜，西瓜不会消除": "スイカ。スイカは消えません。",
       "西瓜不会消除，要给新水果留出空间。": "スイカは消えないので、新しいフルーツのためにスペースを空けてください。",
       "本局结束，得分{score}。": "ラウンド終了。スコア: {score}。",
+      "自在玩吧，随时可以点“玩法”。": "自由に遊びましょう。いつでも遊び方を開けます。",
+      "已取消，这颗先留着。": "キャンセルしました。このフルーツはまだ落としません。",
+      "40 颗水果 · 渲染压力场景": "40個のフルーツ · 描画ストレスシーン",
+      "检查透明外膜 · 桃子、椰子、苹果、柠檬": "透明な膜を確認 · 桃、ココナッツ、りんご、レモン",
       "两颗相同水果碰到一起，变成下一种水果。共十一级，下一颗随机来自前五级；连续合成会多得分。": "同じフルーツが触れると次の種類に合成されます。全11段階で、次のフルーツは最初の5段階からランダムに選ばれます。連続合成はコンボ表示のみで、追加得点はありません。"
     },
     "ko": {
@@ -57,6 +73,10 @@
       "西瓜，西瓜不会消除": "수박. 수박은 사라지지 않습니다.",
       "西瓜不会消除，要给新水果留出空间。": "수박은 사라지지 않으니 새 과일을 위한 공간을 남겨 두세요.",
       "本局结束，得分{score}。": "라운드 종료. 점수: {score}.",
+      "自在玩吧，随时可以点“玩法”。": "편하게 플레이하세요. 언제든 게임 방법을 열 수 있습니다.",
+      "已取消，这颗先留着。": "취소했습니다. 이 과일은 아직 떨어뜨리지 않습니다.",
+      "40 颗水果 · 渲染压力场景": "과일 40개 · 렌더링 스트레스 장면",
+      "检查透明外膜 · 桃子、椰子、苹果、柠檬": "투명 막 확인 · 복숭아, 코코넛, 사과, 레몬",
       "两颗相同水果碰到一起，变成下一种水果。共十一级，下一颗随机来自前五级；连续合成会多得分。": "같은 과일 두 개가 만나면 다음 단계 과일로 합쳐집니다. 총 11단계이며 다음 과일은 처음 5단계에서 무작위로 선택됩니다. 연속 합성은 콤보 표시만 제공하며 추가 점수는 없습니다."
     }
   };
@@ -232,6 +252,7 @@
   function createLanguagePicker() {
     const mount = document.querySelector('.utilities') || document.body;
     if (!mount || document.getElementById('language-select')) return;
+    const compact = window.matchMedia?.('(max-width: 600px)').matches === true;
     const label = document.createElement('label');
     label.className = 'language-picker';
     renderAttribute(label, 'aria-label', '选择语言');
@@ -247,12 +268,13 @@
     for (const locale of LOCALES) {
       const option = document.createElement('option');
       option.value = locale.id;
-      option.textContent = locale.label;
+      option.textContent = compact ? locale.compact : locale.label;
       select.append(option);
     }
     select.value = currentLocale;
     select.addEventListener('change', () => setLocale(select.value));
-    label.append(icon, select);
+    if (!compact) label.append(icon);
+    label.append(select);
     mount.append(label);
   }
 
