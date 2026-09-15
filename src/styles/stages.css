@@ -1,0 +1,155 @@
+.stage-control {
+  margin: 10px 0 12px;
+  padding: 10px 12px 11px;
+  border: 1px solid #d8e0ca;
+  border-radius: 14px;
+  background: rgba(250, 252, 244, .92);
+  box-shadow: 0 8px 20px rgba(47, 73, 47, .055);
+}
+
+.stage-mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stage-mode-label {
+  margin-right: auto;
+  color: #7c8e75;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.stage-mode button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #d5dec7;
+  border-radius: 999px;
+  background: #fbfcf6;
+  color: #75866d;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.stage-mode button[aria-pressed="true"] {
+  border-color: #9eb184;
+  background: #eaf1dc;
+  color: #365d3c;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+}
+
+.stage-detail {
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid #e0e6d7;
+}
+
+.stage-detail[hidden] {
+  display: none;
+}
+
+.stage-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stage-number {
+  color: #365d3c;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.stage-select {
+  max-width: 112px;
+  height: 28px;
+  padding: 0 26px 0 8px;
+  border: 1px solid #d5dec7;
+  border-radius: 8px;
+  background: #fbfcf6;
+  color: #607258;
+  font: inherit;
+  font-size: 8.5px;
+}
+
+.stage-goal-label {
+  display: block;
+  margin-top: 8px;
+  color: #98a18e;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.stage-goal {
+  margin: 3px 0 7px;
+  color: #53664f;
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+
+.stage-progress-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.stage-progress {
+  width: 100%;
+  height: 6px;
+  accent-color: #6f8e58;
+}
+
+.stage-drops {
+  min-width: 64px;
+  color: #85927e;
+  font-size: 7.5px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+html:lang(vi) .stage-mode-label,
+html:lang(vi) .stage-goal-label {
+  letter-spacing: .025em;
+}
+
+@media (max-width: 900px) {
+  .stage-control {
+    margin-inline: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .stage-control {
+    margin: 8px 0 10px;
+    padding: 9px 10px 10px;
+  }
+
+  .stage-mode-label {
+    display: none;
+  }
+
+  .stage-mode button {
+    flex: 1 1 0;
+    min-height: 32px;
+  }
+
+  .stage-heading {
+    align-items: stretch;
+  }
+
+  .stage-select {
+    max-width: 128px;
+  }
+
+  .stage-goal {
+    font-size: 10px;
+  }
+}
