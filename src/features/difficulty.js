@@ -9,7 +9,7 @@
       id: 'easy',
       warningY: 126,
       overflowSeconds: 4.5,
-      softenSeconds: 3.2,
+      softenSeconds: 2.4,
       softenCost: 45,
       energyPerMerge: 4,
       tiltEnergyPerSecond: 7,
@@ -31,7 +31,7 @@
       id: 'hard',
       warningY: 150,
       overflowSeconds: 2.1,
-      softenSeconds: 1.8,
+      softenSeconds: 2.4,
       softenCost: 72,
       energyPerMerge: 1,
       tiltEnergyPerSecond: 14,
@@ -43,6 +43,7 @@
   const COPY = Object.freeze({
     'zh-CN': {
       label: '难度', choose: '选择游戏难度', easy: '轻松', normal: '经典', hard: '高手',
+      left: '左倾', right: '右倾', perSecond: value => `${value}/秒`,
       restart: '切换难度会开始新的一局',
       easyDetail: '更多空间与能量 · 危险线 4.5 秒',
       normalDetail: '标准规则 · 危险线 3 秒',
@@ -56,6 +57,7 @@
     },
     en: {
       label: 'Difficulty', choose: 'Choose difficulty', easy: 'Relaxed', normal: 'Classic', hard: 'Expert',
+      left: 'Left', right: 'Right', perSecond: value => `${value}/sec`,
       restart: 'Changing difficulty starts a new round',
       easyDetail: 'More room & energy · 4.5s danger timer',
       normalDetail: 'Standard rules · 3s danger timer',
@@ -69,6 +71,7 @@
     },
     vi: {
       label: 'Độ khó', choose: 'Chọn độ khó', easy: 'Dễ', normal: 'Thường', hard: 'Khó',
+      left: 'Trái', right: 'Phải', perSecond: value => `${value}/giây`,
       restart: 'Đổi độ khó sẽ bắt đầu một ván mới',
       easyDetail: 'Nhiều chỗ và năng lượng hơn · Cảnh báo 4,5 giây',
       normalDetail: 'Luật tiêu chuẩn · Cảnh báo 3 giây',
@@ -82,6 +85,7 @@
     },
     ja: {
       label: '難易度', choose: '難易度を選択', easy: 'やさしい', normal: 'ノーマル', hard: 'むずかしい',
+      left: '左へ', right: '右へ', perSecond: value => `${value}/秒`,
       restart: '難易度を変更すると新しいゲームが始まります',
       easyDetail: 'スペースとエネルギー多め · 危険ライン 4.5秒',
       normalDetail: '標準ルール · 危険ライン 3秒',
@@ -95,6 +99,7 @@
     },
     ko: {
       label: '난이도', choose: '난이도 선택', easy: '쉬움', normal: '보통', hard: '어려움',
+      left: '왼쪽', right: '오른쪽', perSecond: value => `${value}/초`,
       restart: '난이도를 바꾸면 새 게임이 시작됩니다',
       easyDetail: '공간·에너지 여유 · 위험선 4.5초',
       normalDetail: '기본 규칙 · 위험선 3초',
@@ -126,6 +131,13 @@
   function localeCopy() {
     const locale = window.MelonI18n?.locale || document.documentElement.lang || 'zh-CN';
     return COPY[locale] || COPY['zh-CN'];
+  }
+
+  function setTiltText(button, label, rate) {
+    const small = button?.querySelector('small');
+    if (!small) return;
+    const br = document.createElement('br');
+    small.replaceChildren(document.createTextNode(label), br, document.createTextNode(rate));
   }
 
   const difficultyId = resolveDifficulty();
@@ -183,8 +195,14 @@
     const tiltRight = document.getElementById('tilt-right');
     const energyExplain = document.querySelector('.energy-explain');
     if (softenButton) softenButton.setAttribute('aria-label', copy.softenAria(profile));
-    if (tiltLeft) tiltLeft.setAttribute('aria-label', copy.tiltLeftAria(profile));
-    if (tiltRight) tiltRight.setAttribute('aria-label', copy.tiltRightAria(profile));
+    if (tiltLeft) {
+      tiltLeft.setAttribute('aria-label', copy.tiltLeftAria(profile));
+      setTiltText(tiltLeft, copy.left, copy.perSecond(profile.tiltEnergyPerSecond));
+    }
+    if (tiltRight) {
+      tiltRight.setAttribute('aria-label', copy.tiltRightAria(profile));
+      setTiltText(tiltRight, copy.right, copy.perSecond(profile.tiltEnergyPerSecond));
+    }
     if (energyExplain) energyExplain.textContent = copy.mergeEnergy(profile);
   }
 
