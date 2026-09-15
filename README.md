@@ -1,23 +1,43 @@
-# 软西瓜 · 挑战版
+# Melt Melon
 
-水果软体合成小游戏，使用原生 Canvas，全部资源内嵌在一个 HTML 文件中。
+A build-free soft-body fruit merge game for GitHub Pages. The project uses Canvas and vanilla JavaScript, with no framework or bundling step.
 
-当前版本：V6。水果外围使用透明浅色膜和细高光。开局预放四颗水果，保留十一级合成链和前五级等概率出果。
+## Languages
 
-水果之间增加切向摩擦，减少堆积后的自动滑动；揉软时释放这部分摩擦。合成结果直接以完整大小参与碰撞。单果碰撞的压缩、回弹和余晃继续保留。
+The UI supports Simplified Chinese, English, Vietnamese, Japanese, and Korean. The first visit follows the browser language when supported, and the selected language is saved locally.
 
-揉软消耗 60 能量，倾斜每秒消耗 10，每次合成补充 2。西瓜留在池中，不再合并消除。分数按合成等级逐级增加，连击保留提示和音效，不再放大分数；V6 最高纪录单独保存。
+## Project structure
 
-绘图复用纹理画布，释放已合成水果的缓存，并按显示尺寸分配画布像素。小水果简化内部纹理绘制，碰撞和外轮廓继续使用软体节点。
+```text
+assets/                     # Binary artwork
+src/
+  config/                   # Stable game/catalog metadata
+  physics/                  # Soft-body simulation
+  game/                     # Game rules and state
+  input/                    # Pointer/keyboard input
+  rendering/                # Fruit renderer and feedback effects
+  features/                 # Softening lesson and motion lab
+  i18n/                     # Translation runtime + locale catalogs
+  styles/                   # Page styles
+  app.js                    # Page orchestration/bootstrap
+scripts/                    # Static validation
+```
 
-## 游玩
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries and contribution rules.
 
-[开始游戏](https://threerocks.github.io/melt-melon)
+## Run locally
 
-下载后打开 `index.html` 也可离线游玩。
+You can open `index.html` directly, or serve the repository root with any static server. No install/build step is required.
 
-移动鼠标或使用方向键选择落点，点击或按 Enter 投放水果。相同水果接触后合成；使用“揉软一下”改变堆叠。页面提供慢镜头、逐帧查看和独立揉软练习。
+## Controls
 
-## 发布
+Move the pointer or use the arrow keys to aim. Click/release or press Enter to drop a fruit. Press Space to soften the pool, A/D to tilt, and P to pause.
 
-GitHub Pages 使用 `main` 分支的根目录，入口为 `index.html`，无需构建。
+## Quality checks
+
+```bash
+python3 scripts/validate_static.py
+find src -name '*.js' -print0 | xargs -0 -n1 node --check
+```
+
+The same checks run in GitHub Actions on pull requests and pushes to `main`.
