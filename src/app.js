@@ -4,21 +4,33 @@
   const STORAGE_KEY = 'soft-melon-club-v6';
   const byId = id => document.getElementById(id);
   const t = (message, values) => window.MelonI18n.t(message, values);
+  const renderText = (element, message, values) => window.MelonI18n.renderText(element, message, values);
+  const renderAttribute = (element, name, message, values) => window.MelonI18n.renderAttribute(element, name, message, values);
   const formatNumber = value => window.MelonI18n.formatNumber(value);
   const query = new URLSearchParams(location.search);
   const isQa = query.has('qa');
-  let saved = {};
-  try {
-    const currentSettings = localStorage.getItem(STORAGE_KEY);
-    saved = currentSettings ? JSON.parse(currentSettings) : { ...JSON.parse(localStorage.getItem('soft-melon-club-v3') || '{}'), best: 0 };
-  } catch (_) { /* Local storage may be unavailable for an offline file. */ }
+
+  function readSettings(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const currentSettings = readSettings(STORAGE_KEY);
+  const legacySettings = currentSettings ? null : readSettings('soft-melon-club-v3');
+  let saved = currentSettings || { ...(legacySettings || {}), best: 0 };
   let bestScore = Number(saved.best) || 0;
   let isSoundEnabled = saved.sound === true;
   let reducedMotion = typeof saved.reduced === 'boolean' ? saved.reduced : matchMedia('(prefers-reduced-motion: reduce)').matches;
   let tutorialStage = saved.learned ? 'complete' : 'drop';
   let activeDialog = null, wasPausedBeforeModal = false, lessonIsOnboarding = false;
   let visualTime = 0, previousTime = null, previousDrawTime = -Infinity, nextDrawTime = 0, lastHudTime = 0;
-  let heldTilt = 0, pendingLessonTime = null, pendingWinTime = null, transientMessage = '', transientUntil = 0;
+  let heldTilt = 0, pendingLessonTime = null, pendingWinTime = null, transientMessage = null, transientUntil = 0;
   let qaAutoplay = false, qaNextDropAt = 0;
   let lastNextLevel = -1, lastHighestLevel = -1, hasLoadedArt = false, isStressScene = false;
   const frameIntervals = [], frameCosts = [], simulationCosts = [], drawingCosts = [], eventHistory = [];
@@ -30,7 +42,9 @@
   const canvas = byId('game');
   const context = canvas.getContext('2d', { alpha: true });
   const painter = new FruitPainter(window.MELON_ATLAS || 'fruit-atlas-final.png');
-  const seed = Number(query.get('seed')) || (Date.now() >>> 0);
+  const seedParameter = query.get('seed');
+  const parsedSeed = seedParameter !== null && seedParameter.trim() !== '' ? Number(seedParameter) : NaN;
+  const seed = (Number.isFinite(parsedSeed) ? parsedSeed : Date.now()) >>> 0;
   const game = new MelonGame({ seed });
   const input = new MelonInput({ surface: canvas, game, onChange: () => { lastInputTime = performance.now(); updateHud(); } });
   let lesson = null;
@@ -39,8 +53,12 @@
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ best: bestScore, sound: isSoundEnabled, reduced: reducedMotion, learned: tutorialStage === 'complete' })); } catch (_) {}
   }
 
-  function say(message) { byId('announcer').textContent = message; }
-  function flashMessage(message, seconds = 1.7) { transientMessage = message; transientUntil = visualTime + seconds; }
+  function say(message, values = {}) { renderText(byId('announcer'), message, values); }
+  function flashMessage(message, seconds = 1.7, values = {}) {
+    transientMessage = { source: message, values: { ...values } };
+    transientUntil = visualTime + seconds;
+  }
+  const hint = (source, values = {}) => ({ source, values });
 
   let audioContext = null, audioBus = null;
   function unlockSound() {
@@ -91,21 +109,20 @@
   function setMotionPreference() {
     document.body.dataset.reduced = String(reducedMotion);
     byId('reduced-button').setAttribute('aria-pressed', String(reducedMotion));
-    byId('reduced-button').textContent = reducedMotion ? '恢复完整动态' : '减少动态效果';
+    renderText(byId('reduced-button'), reducedMotion ? '恢复完整动态' : '减少动态效果');
     if (lesson) lesson.reducedMotion = reducedMotion;
   }
-
 
   function startRound() {
     if (activeDialog) { byId(activeDialog).close(); activeDialog = null; }
     input.clear(); heldTilt = 0; frameIntervals.length = frameCosts.length = simulationCosts.length = drawingCosts.length = 0; particles.length = 0; floatingScores.length = 0; feedback.clear();
     pendingLessonTime = pendingWinTime = null; isStressScene = false; qaAutoplay = false; qaNextDropAt = 0;
     tutorialStage = saved.learned || tutorialStage === 'complete' ? 'complete' : 'drop';
-    game.reset((Number(query.get('seed')) || Date.now()) >>> 0);
+    game.reset(seed);
     eventHistory.length = 0;
     say('新的一局，先看看已有水果的位置。');
     game.takeEvents(); game.world.takeImpactEvents(); painter.clearCache();
-    lastNextLevel = lastHighestLevel = -1; transientUntil = 0;
+    lastNextLevel = lastHighestLevel = -1; transientMessage = null; transientUntil = 0;
     if (!hasLoadedArt) game.setPaused(true);
     updateCoach(); updateHud(); previousTime = null;
   }
@@ -114,10 +131,10 @@
     const copy = byId('coach-copy'), badge = byId('coach-step');
     byId('coach').classList.toggle('is-complete', tutorialStage === 'complete');
     byId('skip-tutorial').hidden = tutorialStage === 'complete';
-    if (tutorialStage === 'drop') { badge.textContent = '01'; copy.textContent = '左右移动，给第一颗水果选个落点。'; }
-    else if (tutorialStage === 'merge') { badge.textContent = '02'; copy.textContent = '再放一颗也可以，相同水果碰到一起就会合成。'; }
-    else if (tutorialStage === 'soften') { badge.textContent = '03'; copy.textContent = '合成了！接着，亲手试一次揉软。'; }
-    else { badge.textContent = '↗'; copy.textContent = '先看下一颗，再给它留个位置。'; }
+    if (tutorialStage === 'drop') { badge.textContent = '01'; renderText(copy, '左右移动，给第一颗水果选个落点。'); }
+    else if (tutorialStage === 'merge') { badge.textContent = '02'; renderText(copy, '再放一颗也可以，相同水果碰到一起就会合成。'); }
+    else if (tutorialStage === 'soften') { badge.textContent = '03'; renderText(copy, '合成了！接着，亲手试一次揉软。'); }
+    else { badge.textContent = '↗'; renderText(copy, '先看下一颗，再给它留个位置。'); }
   }
 
   function finishTutorial() {
@@ -146,11 +163,14 @@
     lesson = new SofteningLesson({ canvas: byId('lesson-canvas'), painter, reducedMotion,
       onStatus(snapshot) {
         byId('lesson-soften').disabled = !snapshot.canSoften;
-        if (snapshot.isSoftened && !snapshot.isComplete) { byId('lesson-soften').textContent = '软乎乎地挤过去…'; byId('lesson-copy').textContent = '体积没消失，只是换了个形状。'; }
+        if (snapshot.isSoftened && !snapshot.isComplete) {
+          renderText(byId('lesson-soften'), '软乎乎地挤过去…');
+          renderText(byId('lesson-copy'), '体积没消失，只是换了个形状。');
+        }
       },
       onComplete() {
-        byId('lesson-title').textContent = '挤过去，合在一起了。';
-        byId('lesson-copy').textContent = '下次小水果卡住时，就用这一招。';
+        renderText(byId('lesson-title'), '挤过去，合在一起了。');
+        renderText(byId('lesson-copy'), '下次小水果卡住时，就用这一招。');
         byId('lesson-soften').hidden = true; byId('lesson-continue').hidden = false; byId('lesson-retry').hidden = false;
         playSound('merge', 7); say('练习完成。揉软让水果穿过缝隙，并合成了蜜桃。');
       }
@@ -159,9 +179,9 @@
 
   function resetLesson() {
     ensureLesson(); lesson.reset(); painter.clearCache();
-    byId('lesson-title').textContent = '差一点，就能碰到伙伴。';
-    byId('lesson-copy').textContent = '点一下揉软，让上面的果肉挤过缝隙。';
-    byId('lesson-soften').textContent = '揉软看看 ≋'; byId('lesson-soften').hidden = false;
+    renderText(byId('lesson-title'), '差一点，就能碰到伙伴。');
+    renderText(byId('lesson-copy'), '点一下揉软，让上面的果肉挤过缝隙。');
+    renderText(byId('lesson-soften'), '揉软看看 ≋'); byId('lesson-soften').hidden = false;
     byId('lesson-soften').disabled = !lesson.canSoften;
     byId('lesson-continue').hidden = true; byId('lesson-retry').hidden = true;
   }
@@ -169,12 +189,13 @@
   function openLesson(isOnboarding = false) { lessonIsOnboarding = isOnboarding; resetLesson(); openModal('lesson-dialog'); }
 
   function showResult(isWin) {
-    byId('result-kicker').textContent = isWin ? '这颗大西瓜，属于你' : game.state.score >= bestScore && game.state.score > 0 ? '达到自己的最高纪录' : '这一池，收获满满';
-    byId('result-title').textContent = isWin ? '合出来了！' : '果池装满啦。';
+    renderText(byId('result-kicker'), isWin ? '这颗大西瓜，属于你' : game.state.score >= bestScore && game.state.score > 0 ? '达到自己的最高纪录' : '这一池，收获满满');
+    renderText(byId('result-title'), isWin ? '合出来了！' : '果池装满啦。');
     byId('result-score').textContent = formatNumber(game.state.score);
-    byId('result-copy').textContent = isWin ? '还可以继续冲分。西瓜会留在果池里，不会消除。' : t('这一局合成了 {count} 次。下次试着把大水果放在一侧，别把小水果埋在底下。', { count: game.state.mergeCount });
+    if (isWin) renderText(byId('result-copy'), '还可以继续冲分。西瓜会留在果池里，不会消除。');
+    else renderText(byId('result-copy'), '这一局合成了 {count} 次。下次试着把大水果放在一侧，别把小水果埋在底下。', { count: game.state.mergeCount });
     byId('result-secondary').hidden = !isWin;
-    byId('result-secondary').textContent = '继续挑战';
+    renderText(byId('result-secondary'), '继续挑战');
     byId('result-secondary').className = isWin ? 'primary-button' : 'secondary-button';
     byId('result-primary').className = isWin ? 'secondary-button' : 'primary-button';
     painter.drawIcon(byId('result-fruit'), isWin ? FINAL_LEVEL : Math.min(Math.max(game.state.highestLevel, 2), FINAL_LEVEL));
@@ -183,7 +204,7 @@
   }
 
   function addMergeEffects(event) {
-    const count = 0;
+    const count = reducedMotion ? 0 : 12;
     for (let index = 0; index < count; index++) {
       const angle = index * 2.39996 + event.id * .17, speed = 28 + (index % 7) * 10;
       particles.push({ x: event.x, y: event.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 25, life: .55 + index % 4 * .1, age: 0, size: 1.2 + index % 3, color: FRUIT_COLORS[Math.min(event.level, FINAL_LEVEL)], kind: index % 5 });
@@ -209,47 +230,54 @@
         addMergeEffects(event); playSound('merge', Math.min(event.level, FINAL_LEVEL), event.combo);
         if (!reducedMotion) document.querySelectorAll('.fruit-step canvas')[Math.min(event.level, FINAL_LEVEL)]?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.25)', offset: .3 }, { transform: 'scale(1)' }], { duration: 400, easing: 'ease-out' });
         if (!isQa && game.state.score > bestScore) { bestScore = game.state.score; savePreferences(); }
-        say(t('合成{fruit}，获得{points}分。', { fruit: t(FRUIT_NAMES[Math.min(event.level, FINAL_LEVEL)]), points: event.points }));
+        say('合成{fruit}，获得{points}分。', { fruit: t(FRUIT_NAMES[Math.min(event.level, FINAL_LEVEL)]), points: event.points });
         if (tutorialStage === 'drop' || tutorialStage === 'merge') {
           finishTutorial(); flashMessage('合成了！继续放，卡住时试试揉软。', 3);
         }
       }
       if (event.type === 'watermelon') { pendingWinTime = visualTime + 1; playSound('win'); }
-      if (event.type === 'game-over') { pendingWinTime = null; showResult(false); say(`本局结束，得分${game.state.score}。`); }
+      if (event.type === 'game-over') { pendingWinTime = null; showResult(false); say('本局结束，得分{score}。', { score: game.state.score }); }
     }
   }
 
   function currentHint() {
-    if (!hasLoadedArt) return painter.assetError ? '水果图片未能载入，请重新打开文件。' : '图片准备中…';
-    if (visualTime < transientUntil) return transientMessage;
-    if (input.activePointerId !== null) return input.isInside ? '松手放下 · 拖出果池可取消' : '已移出果池，松手会取消';
-    if (game.state.liquidRemainingSeconds > 0) return t('软乎乎的 · 还剩 {seconds} 秒', { seconds: game.state.liquidRemainingSeconds.toFixed(1) });
-    return tutorialStage === 'drop' ? '左右移动 · 松手放下第一颗' : '左右移动 · 松手投放';
+    if (!hasLoadedArt) return hint(painter.assetError ? '水果图片未能载入，请重新打开文件。' : '图片准备中…');
+    if (visualTime < transientUntil && transientMessage) return transientMessage;
+    if (input.activePointerId !== null) return hint(input.isInside ? '松手放下 · 拖出果池可取消' : '已移出果池，松手会取消');
+    if (game.state.liquidRemainingSeconds > 0) return hint('软乎乎的 · 还剩 {seconds} 秒', { seconds: game.state.liquidRemainingSeconds.toFixed(1) });
+    return hint(tutorialStage === 'drop' ? '左右移动 · 松手放下第一颗' : '左右移动 · 松手投放');
   }
 
   function updateHud() {
     const state = game.state;
     byId('score').textContent = formatNumber(state.score); byId('best').textContent = formatNumber(bestScore);
-    byId('combo').textContent = state.combo > 1 && state.time - state.lastMergeTime < 1.15 ? t('连续合成 {count} 次', { count: state.combo }) : '';
+    renderText(byId('combo'), state.combo > 1 && state.time - state.lastMergeTime < 1.15 ? '连续合成 {count} 次' : '', { count: state.combo });
     for (const id of ['tilt-left', 'tilt-right']) byId(id).disabled = !hasLoadedArt || state.isPaused || state.isOver || state.energy < .2;
     byId('energy').value = state.energy; byId('energy-value').textContent = Math.floor(state.energy);
     const isSoftening = state.liquidRemainingSeconds > 0, canAfford = state.energy >= game.options.softenCost;
     byId('soften-button').disabled = !hasLoadedArt || state.isPaused || state.isOver || isSoftening || !canAfford;
     byId('soften-button').classList.toggle('is-active', isSoftening);
-    byId('soften-label').textContent = isSoftening ? '软乎乎的…' : canAfford ? '揉软一下' : '再攒一点能量';
-    byId('soften-detail').textContent = isSoftening ? t('还有 {seconds} 秒', { seconds: state.liquidRemainingSeconds.toFixed(1) }) : canAfford ? t('挤进空隙 · 消耗 {cost}', { cost: game.options.softenCost }) : t('再合成 {count} 次就能用', { count: Math.ceil((game.options.softenCost - state.energy) / game.options.energyPerMerge) });
-    byId('board-message').textContent = currentHint();
+    renderText(byId('soften-label'), isSoftening ? '软乎乎的…' : canAfford ? '揉软一下' : '再攒一点能量');
+    if (isSoftening) renderText(byId('soften-detail'), '还有 {seconds} 秒', { seconds: state.liquidRemainingSeconds.toFixed(1) });
+    else if (canAfford) renderText(byId('soften-detail'), '挤进空隙 · 消耗 {cost}', { cost: game.options.softenCost });
+    else renderText(byId('soften-detail'), '再合成 {count} 次就能用', { count: Math.ceil((game.options.softenCost - state.energy) / game.options.energyPerMerge) });
+    const boardHint = currentHint();
+    renderText(byId('board-message'), boardHint.source, boardHint.values);
     byId('pause-cover').hidden = !hasLoadedArt || !state.isPaused || Boolean(activeDialog);
-    byId('pause-button').setAttribute('aria-label', state.isPaused ? '继续游戏' : '暂停游戏');
-    byId('pause-button').querySelector('span').textContent = state.isPaused ? '继续' : '暂停';
+    renderAttribute(byId('pause-button'), 'aria-label', state.isPaused ? '继续游戏' : '暂停游戏');
+    renderText(byId('pause-button').querySelector('span'), state.isPaused ? '继续' : '暂停');
     byId('danger-note').hidden = state.dangerSeconds < .15 || Boolean(activeDialog);
     byId('danger-count').textContent = Math.max(1, Math.ceil(game.options.overflowSeconds - state.dangerSeconds));
     byId('sound-button').setAttribute('aria-pressed', String(isSoundEnabled));
-    byId('sound-button').setAttribute('aria-label', isSoundEnabled ? '关闭声音' : '开启声音');
+    renderAttribute(byId('sound-button'), 'aria-label', isSoundEnabled ? '关闭声音' : '开启声音');
     if (hasLoadedArt && lastNextLevel !== state.nextLevel) {
       lastNextLevel = state.nextLevel;
-      for (const id of ['next-fruit', 'next-mobile']) { painter.drawIcon(byId(id), state.nextLevel); byId(id).setAttribute('aria-label', t('下一颗水果：{fruit}', { fruit: t(FRUIT_NAMES[state.nextLevel]) })); }
-      byId('next-name').textContent = FRUIT_NAMES[state.nextLevel];
+      const fruitName = t(FRUIT_NAMES[state.nextLevel]);
+      for (const id of ['next-fruit', 'next-mobile']) {
+        painter.drawIcon(byId(id), state.nextLevel);
+        renderAttribute(byId(id), 'aria-label', '下一颗水果：{fruit}', { fruit: fruitName });
+      }
+      renderText(byId('next-name'), FRUIT_NAMES[state.nextLevel]);
     }
     if (lastHighestLevel !== state.highestLevel) {
       lastHighestLevel = state.highestLevel;
@@ -408,12 +436,47 @@
   }
   window.addEventListener('resize', resizeCanvas); resizeCanvas(); setMotionPreference();
 
+  const fruitRouteEntries = [];
+  let activeRouteIndex = null;
+
+  function routeMessage(index, aria = false) {
+    if (index === FINAL_LEVEL) {
+      return { source: aria ? '西瓜，西瓜不会消除' : '西瓜不会消除，要给新水果留出空间。', values: {} };
+    }
+    return {
+      source: aria ? '两颗{fruit}，合成{nextFruit}' : '两颗{fruit}，合成一颗{nextFruit}。',
+      values: { fruit: t(FRUIT_NAMES[index]), nextFruit: t(FRUIT_NAMES[index + 1]) },
+    };
+  }
+
+  function refreshFruitRoute() {
+    for (const entry of fruitRouteEntries) {
+      renderText(entry.label, FRUIT_NAMES[entry.index]);
+      const aria = routeMessage(entry.index, true);
+      renderAttribute(entry.button, 'aria-label', aria.source, aria.values);
+    }
+    if (activeRouteIndex !== null) {
+      const message = routeMessage(activeRouteIndex, false);
+      renderText(byId('route-caption'), message.source, message.values);
+      if (transientMessage?.source === message.source) transientMessage = message;
+    }
+  }
+
   FRUIT_NAMES.forEach((name, index) => {
-    const button = document.createElement('button'); button.className = 'fruit-step'; button.setAttribute('aria-label', index === FINAL_LEVEL ? '西瓜，西瓜不会消除' : `两颗${name}，合成${FRUIT_NAMES[index + 1]}`);
+    const button = document.createElement('button'); button.className = 'fruit-step';
     const icon = document.createElement('canvas'); icon.width = icon.height = 100; icon.setAttribute('aria-hidden', 'true');
-    const label = document.createElement('span'); label.textContent = name; button.append(icon, label); byId('route-fruits').append(button);
-    button.onclick = () => { const message = index === FINAL_LEVEL ? '西瓜不会消除，要给新水果留出空间。' : `两颗${name}，合成一颗${FRUIT_NAMES[index + 1]}。`; byId('route-caption').textContent = message; flashMessage(message, 2.5); say(message); };
+    const label = document.createElement('span');
+    button.append(icon, label); byId('route-fruits').append(button);
+    fruitRouteEntries.push({ button, label, index });
+    button.onclick = () => {
+      activeRouteIndex = index;
+      const message = routeMessage(index, false);
+      renderText(byId('route-caption'), message.source, message.values);
+      flashMessage(message.source, 2.5, message.values);
+      say(message.source, message.values);
+    };
   });
+  refreshFruitRoute();
 
   if (isQa) {
     byId('qa-panel').hidden = false;
@@ -430,7 +493,17 @@
     byId('qa-autoplay').onclick = () => { finishTutorial(); startRound(); qaAutoplay = true; frameIntervals.length = frameCosts.length = 0; };
     byId('qa-end').onclick = () => showResult(false); byId('qa-win').onclick = () => showResult(true);
   }
+
   const motionLab = initMotionLab({ painter, openModal, closeModal });
+  document.addEventListener('melon:localechange', () => {
+    lastNextLevel = -1;
+    updateCoach();
+    setMotionPreference();
+    refreshFruitRoute();
+    updateHud();
+    previousDrawTime = -Infinity;
+  });
+
   window.__melon = { diagnostics };
   startRound();
   painter.ready.then(loaded => {
