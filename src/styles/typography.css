@@ -56,7 +56,8 @@ h1,
 .next-ticket > strong,
 .softness-note p,
 .route-heading > span,
-.paper-dialog h2 {
+.paper-dialog h2,
+.paper-dialog.motion-lab-dialog h2 {
   font-family: var(--font-display);
   letter-spacing: var(--tracking-display);
 }
@@ -93,6 +94,7 @@ h1 {
 }
 
 .paper-dialog h2,
+.paper-dialog.motion-lab-dialog h2,
 .pause-cover h2,
 .softness-note p {
   line-height: 1.38;
