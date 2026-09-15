@@ -1,4 +1,4 @@
-name: Apply Refactor
+name: Apply Maintainability Refactor
 
 on:
   push:
@@ -13,29 +13,33 @@ jobs:
   refactor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Extract maintainable sources
-        run: python3 tools/refactor_monolith.py
-      - name: Validate extracted JavaScript
+
+      - name: Apply maintainability and i18n migration
+        run: python3 tools/apply_maintainability.py
+
+      - name: Validate refactored sources
         shell: bash
         run: |
           set -euo pipefail
+          python3 scripts/validate_static.py
           find src -name '*.js' -print0 | xargs -0 -n1 node --check
-          test -s assets/fruit-atlas.png
-          ! grep -q 'data:image/png;base64' index.html
-          ! grep -q '<style' index.html
-      - name: Commit generated refactor
+
+      - name: Remove one-time migration helpers
+        shell: bash
+        run: |
+          git rm -f .github/workflows/refactor-inspect.yml
+          git rm -f tools/refactor_monolith.py tools/apply_maintainability.py
+          rmdir tools 2>/dev/null || true
+
+      - name: Commit refactor
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet && git diff --cached --quiet; then
-            echo 'No generated changes.'
-            exit 0
-          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html src assets
-          git commit -m 'refactor: extract game sources and assets'
+          git add -A
+          git commit -m 'refactor: modularize game and add multilingual UI'
           git push origin HEAD:refactor/maintainable-i18n
