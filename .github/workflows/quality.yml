@@ -57,5 +57,5 @@ jobs:
 
           grep -q '<html lang="en"' "$tmpdir/dom.html"
           grep -q 'id="language-select"' "$tmpdir/dom.html"
-          grep -q 'Move left/right · Release the first fruit' "$tmpdir/dom.html"
+          grep -q 'Move left/right · Release your first fruit' "$tmpdir/dom.html"
           grep -q 'Two Blueberry merge into Grape' "$tmpdir/dom.html"
