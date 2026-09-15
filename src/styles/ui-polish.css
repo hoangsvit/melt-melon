@@ -158,15 +158,26 @@ body {
   }
 }
 
+/* Keep the three-column desktop layout inside the viewport at its 901px
+   activation point. The minimum track widths + two gaps + horizontal padding
+   stay below the viewport instead of clipping the companion controls. */
 @media (min-width: 901px) and (max-width: 1160px) {
+  .masthead {
+    padding-inline: 18px;
+  }
+
   .game-layout {
-    grid-template-columns: minmax(240px, 300px) minmax(380px, 440px) minmax(225px, 260px);
-    gap: 22px;
-    padding-inline: 22px;
+    grid-template-columns: minmax(220px, 280px) minmax(370px, 430px) minmax(215px, 250px);
+    gap: 18px;
+    padding-inline: 16px;
   }
 
   .play-column {
-    width: min(440px, 38vw);
+    width: min(430px, 41vw);
+  }
+
+  .companion {
+    min-width: 0;
   }
 }
 
