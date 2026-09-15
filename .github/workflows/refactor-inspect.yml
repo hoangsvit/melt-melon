@@ -1,0 +1,76 @@
+name: Refactor Inspection
+
+on:
+  push:
+    branches:
+      - refactor/maintainable-i18n
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect monolithic HTML
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          from collections import Counter
+
+          p = Path('index.html')
+          text = p.read_text(encoding='utf-8')
+          lines = text.splitlines()
+          print(f'FILE_SIZE={p.stat().st_size}')
+          print(f'LINE_COUNT={len(lines)}')
+
+          styles = list(re.finditer(r'<style\b[^>]*>(.*?)</style>', text, re.I | re.S))
+          scripts = list(re.finditer(r'<script\b([^>]*)>(.*?)</script>', text, re.I | re.S))
+          print(f'STYLE_BLOCKS={len(styles)} sizes={[len(m.group(1)) for m in styles]}')
+          print(f'SCRIPT_BLOCKS={len(scripts)} sizes={[len(m.group(2)) for m in scripts]}')
+
+          data_urls = re.findall(r'data:([\w/+.-]+);base64,([A-Za-z0-9+/=]+)', text)
+          print(f'DATA_URLS={len(data_urls)}')
+          if data_urls:
+              print('DATA_URL_TOP=' + str(sorted([(mime, len(data)) for mime, data in data_urls], key=lambda x: -x[1])[:20]))
+
+          funcs = re.findall(r'(?m)^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(', text)
+          classes = re.findall(r'(?m)^\s*class\s+([A-Za-z_$][\w$]*)\b', text)
+          arrow_consts = re.findall(r'(?m)^\s*(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^\n]*?\)\s*=>', text)
+          print(f'FUNCTION_COUNT={len(funcs)}')
+          print('FUNCTIONS=' + ','.join(funcs[:250]))
+          print(f'CLASS_COUNT={len(classes)} CLASSES=' + ','.join(classes[:100]))
+          print(f'ARROW_COUNT={len(arrow_consts)} ARROWS=' + ','.join(arrow_consts[:150]))
+
+          ids = re.findall(r'\bid=["\']([^"\']+)["\']', text, re.I)
+          print(f'ID_COUNT={len(ids)} IDS=' + ','.join(ids[:200]))
+
+          # Human-visible CJK strings, excluding giant blobs.
+          candidates = re.findall(r'[\u3400-\u9fff][\u3400-\u9fffA-Za-z0-9\s，。！？、：；（）()·+\-—/]{0,80}', text)
+          cleaned = []
+          for s in candidates:
+              s = re.sub(r'\s+', ' ', s).strip()
+              if 1 <= len(s) <= 80:
+                  cleaned.append(s)
+          counts = Counter(cleaned)
+          print(f'CJK_UNIQUE={len(counts)}')
+          for s, n in counts.most_common(180):
+              print(f'CJK[{n}] {s}')
+
+          # Print concise HTML tag context around visible text/controls.
+          for i, line in enumerate(lines, 1):
+              if re.search(r'<(?:button|label|h[1-6]|p|span|option|title)\b', line, re.I) and len(line) < 500:
+                  print(f'UI_LINE {i}: {line.strip()}')
+
+          # Show boundaries of each script block, not full content.
+          for idx, m in enumerate(scripts, 1):
+              body = m.group(2)
+              head = re.sub(r'\s+', ' ', body[:700]).strip()
+              tail = re.sub(r'\s+', ' ', body[-700:]).strip()
+              print(f'SCRIPT_{idx}_HEAD={head}')
+              print(f'SCRIPT_{idx}_TAIL={tail}')
+          PY
