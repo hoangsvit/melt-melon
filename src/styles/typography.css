@@ -1,6 +1,7 @@
 /* Locale-aware typography -------------------------------------------------
-   Keep the game build-free and offline-friendly by preferring native/system
-   fonts before language-specific fallbacks. */
+   Native/system stacks keep the game build-free and avoid font download
+   failures. Vietnamese intentionally uses a UI sans stack for display copy:
+   it handles stacked diacritics more reliably than the old Georgia fallback. */
 :root {
   --font-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: Georgia, "Times New Roman", serif;
@@ -30,12 +31,19 @@ html:lang(ko) {
   --tracking-label: 0.045em;
 }
 
-html:lang(en),
-html:lang(vi) {
+html:lang(en) {
   --font-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: Georgia, "Times New Roman", serif;
   --tracking-display: -0.03em;
   --tracking-label: 0.025em;
+}
+
+html:lang(vi) {
+  --font-ui: "Segoe UI", "Noto Sans", "Liberation Sans", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif;
+  --font-display: "Segoe UI", "Noto Sans", "Liberation Sans", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif;
+  --font-numeric: "Segoe UI", "Noto Sans", "Liberation Sans", Roboto, Arial, ui-sans-serif, sans-serif;
+  --tracking-display: -0.018em;
+  --tracking-label: 0.015em;
 }
 
 body,
@@ -46,6 +54,7 @@ textarea {
   font-family: var(--font-ui);
   font-kerning: normal;
   text-rendering: optimizeLegibility;
+  font-synthesis: none;
 }
 
 .wordmark > span:nth-child(2),
@@ -89,8 +98,9 @@ h1,
 }
 
 h1 {
-  line-height: 1.28;
+  line-height: 1.2;
   letter-spacing: var(--tracking-display);
+  text-wrap: balance;
 }
 
 .paper-dialog h2,
@@ -103,7 +113,7 @@ h1 {
 /* Latin copy needs less tracking than the original Chinese-first design. */
 html:lang(en) .wordmark > span:nth-child(2),
 html:lang(vi) .wordmark > span:nth-child(2) {
-  letter-spacing: 0.015em;
+  letter-spacing: 0.01em;
 }
 
 html:lang(en) .edition,
@@ -112,7 +122,32 @@ html:lang(en) .overline,
 html:lang(vi) .overline,
 html:lang(en) .page-footer,
 html:lang(vi) .page-footer {
-  letter-spacing: 0.035em;
+  letter-spacing: 0.025em;
+}
+
+/* Vietnamese display text uses the locale-safe sans stack and looser vertical
+   metrics so stacked accents do not collide or feel cramped. */
+html:lang(vi) h1 {
+  font-size: clamp(34px, 3vw, 44px);
+  font-weight: 720;
+  line-height: 1.16;
+  letter-spacing: -0.022em;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  max-width: 15ch;
+}
+
+html:lang(vi) .handnote,
+html:lang(vi) .pause-cover h2,
+html:lang(vi) .soften-button strong,
+html:lang(vi) .next-ticket > strong,
+html:lang(vi) .softness-note p,
+html:lang(vi) .route-heading > span,
+html:lang(vi) .paper-dialog h2,
+html:lang(vi) .paper-dialog.motion-lab-dialog h2 {
+  font-weight: 650;
+  letter-spacing: -0.012em;
 }
 
 /* Avoid cramped translated labels while keeping the compact visual language. */
@@ -131,6 +166,17 @@ html:not(:lang(zh-CN)) .help-rules p {
   line-height: 1.55;
 }
 
+/* Keep this after the generic non-Chinese rule so Vietnamese guidance retains
+   the extra vertical room required for stacked diacritics. */
+html:lang(vi) .introduction > p,
+html:lang(vi) .coach p,
+html:lang(vi) .next-ticket > p,
+html:lang(vi) .dialog-lead,
+html:lang(vi) .help-rules p,
+html:lang(vi) .board-message {
+  line-height: 1.62;
+}
+
 @media (max-width: 600px) {
   .wordmark > span:nth-child(2) {
     letter-spacing: 0.025em;
@@ -139,6 +185,11 @@ html:not(:lang(zh-CN)) .help-rules p {
   html:lang(en) .wordmark > span:nth-child(2),
   html:lang(vi) .wordmark > span:nth-child(2) {
     font-size: 18px;
+  }
+
+  html:lang(vi) h1 {
+    font-size: clamp(32px, 9vw, 40px);
+    max-width: none;
   }
 
   .language-picker select {
