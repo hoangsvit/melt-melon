@@ -17,24 +17,42 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check migration state
+        id: state
+        shell: bash
+        run: |
+          if [ -f src/i18n/core.js ]; then
+            echo 'needed=false' >> "$GITHUB_OUTPUT"
+            echo 'Maintainability migration is already applied.'
+          else
+            echo 'needed=true' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Apply maintainability and i18n migration
+        if: steps.state.outputs.needed == 'true'
         run: python3 tools/apply_maintainability.py
 
       - name: Validate refactored sources
+        if: steps.state.outputs.needed == 'true'
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/validate_static.py
           find src -name '*.js' -print0 | xargs -0 -n1 node --check
 
-      - name: Remove one-time migration helpers
+      - name: Prepare pushable commit
+        if: steps.state.outputs.needed == 'true'
         shell: bash
         run: |
-          git rm -f .github/workflows/refactor-inspect.yml
+          # GitHub's workflow token can write source files but cannot create/update
+          # workflow files. Leave workflow cleanup for the authenticated repo client.
+          git checkout -- .github/workflows/refactor-inspect.yml
+          rm -f .github/workflows/quality.yml
           git rm -f tools/refactor_monolith.py tools/apply_maintainability.py
           rmdir tools 2>/dev/null || true
 
       - name: Commit refactor
+        if: steps.state.outputs.needed == 'true'
         shell: bash
         run: |
           set -euo pipefail
