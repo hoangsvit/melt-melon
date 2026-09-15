@@ -1,60 +1,63 @@
+@import url("./typography.css");
+@import url("./ui-polish.css");
+
 .difficulty-control {
-  margin: 0 15px 12px;
-  padding: 10px 11px 11px;
-  border: 1px solid #d7dfc8;
-  border-radius: 12px;
-  background: #fbfcf3b8;
-  box-shadow: inset 0 1px 0 #ffffffb3;
+  margin: 0 12px 14px;
+  padding: 11px 12px 12px;
+  border: 1px solid #d9e1cb;
+  border-radius: 14px;
+  background: #f5f8ec;
+  box-shadow: inset 0 1px 0 #ffffffcc;
 }
 
 .difficulty-heading {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 7px;
+  gap: 10px;
+  margin-bottom: 9px;
 }
 
 .difficulty-label {
   flex: 0 0 auto;
   font-size: 9px;
-  font-weight: 650;
-  color: #607951;
-  letter-spacing: .08em;
+  font-weight: 700;
+  color: #58714e;
+  letter-spacing: .055em;
 }
 
 .difficulty-detail {
   min-width: 0;
   text-align: right;
-  font-size: 7.5px;
+  font-size: 8px;
   line-height: 1.35;
-  color: #98a48c;
+  color: #8f9d84;
 }
 
 .difficulty-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
+  gap: 6px;
 }
 
 .difficulty-option {
   min-width: 0;
-  height: 28px;
-  padding: 0 5px;
-  border: 1px solid #d7dfc8;
-  border-radius: 8px;
-  background: #f6f8ed;
-  color: #7b8e6c;
-  font-size: 9px;
-  font-weight: 600;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #d5dec6;
+  border-radius: 999px;
+  background: #fbfcf6;
+  color: #718564;
+  font-size: 9.5px;
+  font-weight: 650;
   white-space: nowrap;
   transition: transform .12s, border-color .18s, background .18s, color .18s, box-shadow .18s;
 }
 
 .difficulty-option:hover {
-  border-color: #b9c99d;
+  border-color: #b6c99b;
   color: #426b47;
-  background: #f0f5df;
+  background: #eff5df;
 }
 
 .difficulty-option:active {
@@ -65,7 +68,7 @@
   border-color: #708d56;
   background: #e3edc8;
   color: #365b3b;
-  box-shadow: inset 0 0 0 1px #ffffff87;
+  box-shadow: inset 0 0 0 1px #ffffff87, 0 3px 8px #718d5220;
 }
 
 body[data-difficulty="hard"] .difficulty-option[aria-pressed="true"] {
@@ -84,6 +87,12 @@ body[data-difficulty="easy"] .difficulty-option[aria-pressed="true"] {
   background: #e8f0d2;
 }
 
+html:lang(vi) .difficulty-label,
+html:lang(vi) .difficulty-option,
+html:lang(vi) .difficulty-detail {
+  letter-spacing: 0;
+}
+
 @media (max-width: 900px) {
   .difficulty-control {
     margin-top: 2px;
@@ -93,19 +102,19 @@ body[data-difficulty="easy"] .difficulty-option[aria-pressed="true"] {
 @media (max-width: 600px) {
   .difficulty-control {
     margin: 0 10px 10px;
-    padding: 8px 9px 9px;
+    padding: 9px 10px 10px;
   }
 
   .difficulty-heading {
-    margin-bottom: 6px;
+    margin-bottom: 7px;
   }
 
   .difficulty-detail {
-    font-size: 7px;
+    font-size: 7.5px;
   }
 
   .difficulty-option {
-    height: 30px;
+    height: 32px;
     font-size: 9px;
   }
 }
