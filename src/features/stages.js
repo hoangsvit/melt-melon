@@ -5,6 +5,7 @@
   const MODE_STAGE = 'stage';
   const FINAL_LEVEL = window.MelonFruitCatalog?.finalLevel ?? 10;
   const TOTAL_STAGES = 20;
+  const MAX_RANDOM_LEVEL = 4;
   const STAGES = Object.freeze([
     { id: 1, merges: 2, dropLimit: 8 },
     { id: 2, score: 8, dropLimit: 10 },
@@ -18,15 +19,44 @@
     { id: 10, targetLevel: 7, dropLimit: 28 },
     { id: 11, score: 90, dropLimit: 28 },
     { id: 12, merges: 18, dropLimit: 30 },
-    { id: 13, targetLevel: 8, dropLimit: 32 },
-    { id: 14, score: 135, merges: 20, dropLimit: 34 },
-    { id: 15, targetLevel: 9, dropLimit: 38 },
-    { id: 16, score: 180, dropLimit: 38 },
-    { id: 17, merges: 28, dropLimit: 42 },
-    { id: 18, targetLevel: 10, dropLimit: 46 },
-    { id: 19, score: 260, merges: 30, dropLimit: 48 },
-    { id: 20, score: 320, targetLevel: 10, dropLimit: 55 },
+    { id: 13, targetLevel: 8, dropLimit: 42 },
+    { id: 14, score: 135, merges: 20, dropLimit: 44 },
+    { id: 15, score: 160, targetLevel: 8, dropLimit: 48 },
+    { id: 16, score: 180, dropLimit: 46 },
+    { id: 17, merges: 28, dropLimit: 52 },
+    { id: 18, targetLevel: 9, dropLimit: 96 },
+    { id: 19, score: 260, merges: 30, dropLimit: 64 },
+    { id: 20, score: 320, targetLevel: 10, dropLimit: 180 },
   ]);
+
+  function normalizeStageId(value, fallback = 1) {
+    const number = Number(value);
+    if (Number.isInteger(number) && number >= 1 && number <= TOTAL_STAGES) return number;
+    const fallbackNumber = Number(fallback);
+    return Number.isInteger(fallbackNumber) && fallbackNumber >= 1 && fallbackNumber <= TOTAL_STAGES ? fallbackNumber : 1;
+  }
+
+  function validateStageDefinitions(stages) {
+    if (stages.length !== TOTAL_STAGES) throw new Error(`Expected ${TOTAL_STAGES} stages, received ${stages.length}`);
+    const maxMaterialPerDrop = 2 ** MAX_RANDOM_LEVEL;
+    stages.forEach((stage, index) => {
+      if (stage.id !== index + 1) throw new Error(`Stage IDs must be sequential; expected ${index + 1}`);
+      if (!Number.isInteger(stage.dropLimit) || stage.dropLimit <= 0) throw new Error(`Stage ${stage.id} requires a positive integer drop limit`);
+      if (stage.score !== undefined && (!Number.isInteger(stage.score) || stage.score <= 0)) throw new Error(`Stage ${stage.id} has an invalid score target`);
+      if (stage.merges !== undefined && (!Number.isInteger(stage.merges) || stage.merges <= 0)) throw new Error(`Stage ${stage.id} has an invalid merge target`);
+      if (stage.targetLevel !== undefined) {
+        if (!Number.isInteger(stage.targetLevel) || stage.targetLevel < 1 || stage.targetLevel > FINAL_LEVEL) throw new Error(`Stage ${stage.id} has an invalid fruit target`);
+        const requiredMaterial = 2 ** stage.targetLevel;
+        const maximumDroppedMaterial = stage.dropLimit * maxMaterialPerDrop;
+        if (maximumDroppedMaterial < requiredMaterial) {
+          throw new Error(`Stage ${stage.id} cannot reach fruit level ${stage.targetLevel} within ${stage.dropLimit} drops`);
+        }
+      }
+    });
+    return true;
+  }
+
+  validateStageDefinitions(STAGES);
 
   const COPY = Object.freeze({
     'zh-CN': {
@@ -79,12 +109,14 @@
   function loadProgress() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      const completed = Array.isArray(parsed.completed) ? parsed.completed.filter(Number.isInteger) : [];
-      return {
-        unlocked: Math.max(1, Math.min(TOTAL_STAGES, Number(parsed.unlocked) || 1)),
-        lastStage: Math.max(1, Math.min(TOTAL_STAGES, Number(parsed.lastStage) || 1)),
-        completed,
-      };
+      const completed = Array.isArray(parsed.completed)
+        ? Array.from(new Set(parsed.completed.filter(value => Number.isInteger(value) && value >= 1 && value <= TOTAL_STAGES))).sort((a, b) => a - b)
+        : [];
+      const storedUnlocked = normalizeStageId(parsed.unlocked, 1);
+      const completedUnlocked = completed.length ? Math.min(TOTAL_STAGES, completed[completed.length - 1] + 1) : 1;
+      const unlocked = Math.max(storedUnlocked, completedUnlocked);
+      const lastStage = Math.min(normalizeStageId(parsed.lastStage, 1), unlocked);
+      return { unlocked, lastStage, completed };
     } catch (_) {
       return { unlocked: 1, lastStage: 1, completed: [] };
     }
@@ -93,7 +125,7 @@
   const progress = loadProgress();
   const query = new URLSearchParams(location.search);
   const mode = query.get('mode') === MODE_STAGE ? MODE_STAGE : 'endless';
-  const requestedStage = Math.max(1, Math.min(TOTAL_STAGES, Number(query.get('stage')) || progress.lastStage || 1));
+  const requestedStage = normalizeStageId(query.get('stage'), progress.lastStage);
   const stageId = mode === MODE_STAGE ? Math.min(requestedStage, progress.unlocked) : null;
   const activeStage = stageId ? STAGES[stageId - 1] : null;
   const runtime = { game: null, status: null, root: null };
@@ -182,11 +214,21 @@
         }
       }
 
+      drop() {
+        if (!this.stageStatus || this.stageStatus.complete || this.stageStatus.failed) return false;
+        if (activeStage.dropLimit && this.state.dropCount >= activeStage.dropLimit) return false;
+        const dropped = super.drop();
+        if (dropped && activeStage.dropLimit && this.state.dropCount >= activeStage.dropLimit && this.stageStatus.outOfDropsAt === null) {
+          this.stageStatus.outOfDropsAt = this.state.time;
+          renderStageUi();
+        }
+        return dropped;
+      }
+
       emit(type, details = {}) {
         super.emit(type, details);
         if (!this.stageStatus || this.stageStatus.complete || this.stageStatus.failed) return;
         if (type === 'merge') this.stageStatus.highestMergedLevel = Math.max(this.stageStatus.highestMergedLevel, Number(details.level) || 0);
-        if (type === 'drop' && activeStage.dropLimit && this.state.dropCount >= activeStage.dropLimit) this.stageStatus.outOfDropsAt = this.state.time;
         if (type === 'game-over') {
           this.stageStatus.failed = true;
           this.stageStatus.reason = 'overflow';
@@ -216,9 +258,10 @@
       url.searchParams.delete('mode');
       url.searchParams.delete('stage');
     } else {
+      const nextStage = Math.min(normalizeStageId(params.stage, progress.lastStage), progress.unlocked);
       url.searchParams.set('mode', MODE_STAGE);
-      url.searchParams.set('stage', String(params.stage));
-      progress.lastStage = params.stage;
+      url.searchParams.set('stage', String(nextStage));
+      progress.lastStage = nextStage;
       saveProgress();
     }
     location.assign(url.toString());
@@ -249,7 +292,7 @@
 
     root.querySelector('[data-game-mode="endless"]').addEventListener('click', () => go({ mode: 'endless' }));
     root.querySelector('[data-game-mode="stage"]').addEventListener('click', () => go({ mode: MODE_STAGE, stage: progress.lastStage || progress.unlocked }));
-    root.querySelector('.stage-select').addEventListener('change', event => go({ mode: MODE_STAGE, stage: Number(event.target.value) }));
+    root.querySelector('.stage-select').addEventListener('change', event => go({ mode: MODE_STAGE, stage: event.target.value }));
     renderStageUi();
   }
 
@@ -338,5 +381,12 @@
     rewriteResult();
   });
 
-  window.MelonStages = Object.freeze({ stages: STAGES, mode, activeStage, progress, total: TOTAL_STAGES });
+  window.MelonStages = Object.freeze({
+    stages: STAGES,
+    mode,
+    activeStage,
+    progress,
+    total: TOTAL_STAGES,
+    definitionsValidated: true,
+  });
 })();
