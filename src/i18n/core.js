@@ -16,6 +16,7 @@
   const RUNTIME_CATALOGS = {
     "zh-CN": {
       "选择语言": "选择语言",
+      "揉软看看 ≋": "揉软看看 ≋",
       "两颗{fruit}，合成{nextFruit}": "两颗{fruit}，合成{nextFruit}",
       "两颗{fruit}，合成一颗{nextFruit}。": "两颗{fruit}，合成一颗{nextFruit}。",
       "西瓜，西瓜不会消除": "西瓜，西瓜不会消除",
@@ -29,6 +30,7 @@
     },
     "en": {
       "选择语言": "Choose language",
+      "揉软看看 ≋": "Try softening ≋",
       "两颗{fruit}，合成{nextFruit}": "Two {fruit} merge into {nextFruit}",
       "两颗{fruit}，合成一颗{nextFruit}。": "Two {fruit} merge into one {nextFruit}.",
       "西瓜，西瓜不会消除": "Watermelon. Watermelons do not disappear.",
@@ -42,6 +44,7 @@
     },
     "vi": {
       "选择语言": "Chọn ngôn ngữ",
+      "揉软看看 ≋": "Thử làm mềm ≋",
       "两颗{fruit}，合成{nextFruit}": "Hai {fruit} ghép thành {nextFruit}",
       "两颗{fruit}，合成一颗{nextFruit}。": "Hai {fruit} ghép thành một {nextFruit}.",
       "西瓜，西瓜不会消除": "Dưa hấu. Dưa hấu sẽ không biến mất.",
@@ -55,6 +58,7 @@
     },
     "ja": {
       "选择语言": "言語を選択",
+      "揉软看看 ≋": "柔らかくしてみる ≋",
       "两颗{fruit}，合成{nextFruit}": "2つの{fruit}で{nextFruit}に合成",
       "两颗{fruit}，合成一颗{nextFruit}。": "2つの{fruit}を1つの{nextFruit}に合成します。",
       "西瓜，西瓜不会消除": "スイカ。スイカは消えません。",
@@ -68,6 +72,7 @@
     },
     "ko": {
       "选择语言": "언어 선택",
+      "揉软看看 ≋": "부드럽게 해보기 ≋",
       "两颗{fruit}，合成{nextFruit}": "{fruit} 두 개를 {nextFruit}(으)로 합치기",
       "两颗{fruit}，合成一颗{nextFruit}。": "{fruit} 두 개가 하나의 {nextFruit}(으)로 합쳐집니다.",
       "西瓜，西瓜不会消除": "수박. 수박은 사라지지 않습니다.",
