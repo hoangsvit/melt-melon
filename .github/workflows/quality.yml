@@ -18,7 +18,7 @@ jobs:
       - name: Check JavaScript syntax
         shell: bash
         run: find src -name '*.js' -print0 | xargs -0 -n1 node --check
-      - name: Smoke test browser startup, locale, and difficulty
+      - name: Smoke test browser startup, locale, difficulty, and stages
         shell: bash
         run: |
           set -euo pipefail
@@ -60,6 +60,8 @@ jobs:
           grep -q 'Move left/right · Release your first fruit' "$tmpdir/dom.html"
           grep -q 'Two Blueberry merge into Grape' "$tmpdir/dom.html"
           grep -q 'data-difficulty="normal" class="difficulty-option" aria-pressed="true"' "$tmpdir/dom.html"
+          grep -q 'id="stage-control"' "$tmpdir/dom.html"
+          grep -q '>Endless</button>' "$tmpdir/dom.html"
 
           "$chrome" \
             --headless=new \
@@ -81,3 +83,22 @@ jobs:
           grep -q 'red line for 2.1s' "$tmpdir/hard.html"
           grep -q '<strong id="energy-value">45</strong>' "$tmpdir/hard.html"
           grep -q '14/sec' "$tmpdir/hard.html"
+
+          "$chrome" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-dev-shm-usage \
+            --user-data-dir="$tmpdir/chrome-stage" \
+            --lang=zh-CN \
+            --virtual-time-budget=5000 \
+            --dump-dom \
+            'http://127.0.0.1:4173/?lang=en&seed=0&mode=stage&stage=1' \
+            >"$tmpdir/stage.html" 2>"$tmpdir/chrome-stage.log"
+
+          grep -q 'data-game-mode="stage"' "$tmpdir/stage.html"
+          grep -q 'data-stage="1"' "$tmpdir/stage.html"
+          grep -q 'Level 1 / 20' "$tmpdir/stage.html"
+          grep -q 'Make 2 merges' "$tmpdir/stage.html"
+          grep -q '8 drops left' "$tmpdir/stage.html"
+          grep -q '🔒 Level 2' "$tmpdir/stage.html"
