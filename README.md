@@ -1,23 +1,51 @@
-# 软西瓜 · 挑战版
+# Soft Watermelon
 
-水果软体合成小游戏，使用原生 Canvas，全部资源内嵌在一个 HTML 文件中。
+A no-build H5 merge game with responsive desktop/mobile controls, tutorial flows, softening/tilting mechanics, and multilingual UI.
 
-当前版本：V6。水果外围使用透明浅色膜和细高光。开局预放四颗水果，保留十一级合成链和前五级等概率出果。
+Original game inspiration: https://github.com/ahgv/h5-mota/
 
-水果之间增加切向摩擦，减少堆积后的自动滑动；揉软时释放这部分摩擦。合成结果直接以完整大小参与碰撞。单果碰撞的压缩、回弹和余晃继续保留。
+## Architecture
 
-揉软消耗 60 能量，倾斜每秒消耗 10，每次合成补充 2。西瓜留在池中，不再合并消除。分数按合成等级逐级增加，连击保留提示和音效，不再放大分数；V6 最高纪录单独保存。
+The project keeps the existing standalone game payload intact while separating the page launcher and localization layer:
 
-绘图复用纹理画布，释放已合成水果的缓存，并按显示尺寸分配画布像素。小水果简化内部纹理绘制，碰撞和外轮廓继续使用软体节点。
+- `index.html` — lightweight entry point.
+- `game.html` — original self-contained game bundle (HTML, CSS, JavaScript, and artwork).
+- `src/bootstrap.js` — loads `game.html` and injects the localization layer before the game starts.
+- `src/locales.js` — translation dictionaries.
+- `src/i18n.js` — locale detection, runtime DOM/canvas translation, and language switcher.
+- `src/i18n.css` — isolated styles for the language switcher.
 
-## 游玩
+This keeps GitHub Pages deployment build-free and makes future UI/i18n work possible without editing the multi-megabyte game bundle for every translation change.
 
-[开始游戏](https://threerocks.github.io/melt-melon)
+## Languages
 
-下载后打开 `index.html` 也可离线游玩。
+- Simplified Chinese (`zh-CN`, original)
+- English (`en`)
+- Vietnamese (`vi`)
 
-移动鼠标或使用方向键选择落点，点击或按 Enter 投放水果。相同水果接触后合成；使用“揉软一下”改变堆叠。页面提供慢镜头、逐帧查看和独立揉软练习。
+Locale priority is:
 
-## 发布
+1. `?lang=` query parameter
+2. saved language in `localStorage`
+3. browser language
+4. Simplified Chinese fallback
 
-GitHub Pages 使用 `main` 分支的根目录，入口为 `index.html`，无需构建。
+Examples:
+
+```text
+/?lang=zh-CN
+/?lang=en
+/?lang=vi
+```
+
+To add a language, add its dictionary to `src/locales.js`, add the locale code to `SUPPORTED` in `src/i18n.js`, and extend dynamic message formatting where needed.
+
+## Game features
+
+- Drag/drop fruit placement and 11 merge levels: blueberry → watermelon.
+- Score, best score, and next-fruit preview.
+- Merge progression guide.
+- “Soften” action and slow-motion teaching flow.
+- Dedicated softening practice mode.
+- Responsive phone/tablet/desktop layout.
+- Keyboard and accessible labels.
