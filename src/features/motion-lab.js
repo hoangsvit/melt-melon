@@ -3,6 +3,7 @@
 
   const WIDTH = 460, HEIGHT = 640, FRAME_SECONDS = 1 / 60;
   const t = (message, values) => window.MelonI18n.t(message, values);
+  const renderText = (element, message, values) => window.MelonI18n.renderText(element, message, values);
   const SCENES = {
     drop: { title: '单果落地', hint: '看下落加速、触地压缩，以及回弹后的余振。' },
     collision: { title: '大小碰撞', hint: '看小水果接触大水果时，两边的轮廓怎样变化。' },
@@ -27,12 +28,16 @@
     let world = null, sceneGame = null, sceneName = 'drop';
     let playbackRate = .25, isPaused = false, isDestroyed = false;
     let frameRequest = null, previousTimestamp = null, pendingSeconds = 0;
-    let latestEvent = '还未接触', contactMarkers = [], hasFirstContact = false;
-    let lastShapeText = '', lastEventText = '';
+    let latestEvent = { source: '还未接触', values: {} }, contactMarkers = [], hasFirstContact = false;
+    let lastShapeText = '';
 
     function listen(target, eventName, callback) {
       target.addEventListener(eventName, callback);
       listeners.push(() => target.removeEventListener(eventName, callback));
+    }
+
+    function setLatestEvent(source, values = {}) {
+      latestEvent = { source, values: { ...values } };
     }
 
     function elapsedSeconds() { return sceneGame ? sceneGame.state.time : world?.time || 0; }
@@ -40,9 +45,9 @@
     function updateControls() {
       for (const button of scenarioButtons) button.setAttribute('aria-pressed', String(button.dataset.motionScene === sceneName));
       for (const button of speedButtons) button.setAttribute('aria-pressed', String(Number(button.dataset.motionSpeed) === playbackRate));
-      pauseButton.textContent = isPaused ? '继续' : '暂停';
+      renderText(pauseButton, isPaused ? '继续' : '暂停');
       pauseButton.setAttribute('aria-pressed', String(isPaused));
-      hintOutput.textContent = t(SCENES[sceneName].hint);
+      renderText(hintOutput, SCENES[sceneName].hint);
     }
 
     function resetScene(nextScene = sceneName) {
@@ -64,7 +69,7 @@
         } else world.add(4, 230, 108, 64, { vy: 70 });
       }
       pendingSeconds = 0; previousTimestamp = null;
-      contactMarkers = []; hasFirstContact = false; latestEvent = '还未接触'; feedback.clear();
+      contactMarkers = []; hasFirstContact = false; setLatestEvent('还未接触'); feedback.clear();
       isPaused = false;
       updateControls(); renderScene();
       if (dialog.open) requestFrame();
@@ -76,7 +81,10 @@
       if (contactMarkers.length > 8) contactMarkers.shift();
       if (!hasFirstContact) {
         hasFirstContact = true;
-        latestEvent = t('首次接触 {time} s · 速度 {speed} px/s', { time: simulationTime.toFixed(3), speed: Math.round(impact.speed || 0) });
+        setLatestEvent('首次接触 {time} s · 速度 {speed} px/s', {
+          time: simulationTime.toFixed(3),
+          speed: Math.round(impact.speed || 0),
+        });
       }
     }
 
@@ -87,12 +95,13 @@
         for (const event of sceneGame.takeEvents()) {
           feedback.add(event);
           if (event.type === 'impact') recordImpact(event);
-          if (event.type === 'merge-start') latestEvent = t('接触蓄力 {time} s', { time: elapsedSeconds().toFixed(3) });
-          if (event.type === 'merge') latestEvent = t('完成合成 {time} s · 产生新水果', { time: elapsedSeconds().toFixed(3) });
+          if (event.type === 'merge-start') setLatestEvent('接触蓄力 {time} s', { time: elapsedSeconds().toFixed(3) });
+          if (event.type === 'merge') setLatestEvent('完成合成 {time} s · 产生新水果', { time: elapsedSeconds().toFixed(3) });
         }
       } else world.step(FRAME_SECONDS, { liquid: 0 });
       for (const impact of world.takeImpactEvents?.() || []) {
-        feedback.add({ type: 'impact', ...impact }); recordImpact(impact);
+        feedback.add({ type: 'impact', ...impact });
+        recordImpact(impact);
       }
     }
 
@@ -150,10 +159,15 @@
       timeOutput.textContent = `${simulationTime.toFixed(3)} s`;
       const shapeText = world.bodies.map(body => {
         const width = body.maxX - body.minX, height = body.maxY - body.minY;
-        return t('果 {id} · 宽 {width} / 高 {height} · W/H {ratio}', { id: body.id, width: width.toFixed(1), height: height.toFixed(1), ratio: (width / Math.max(height, .001)).toFixed(3) });
+        return t('果 {id} · 宽 {width} / 高 {height} · W/H {ratio}', {
+          id: body.id,
+          width: width.toFixed(1),
+          height: height.toFixed(1),
+          ratio: (width / Math.max(height, .001)).toFixed(3),
+        });
       }).join('\n');
       if (shapeText !== lastShapeText) { shapeOutput.textContent = shapeText; lastShapeText = shapeText; }
-      if (latestEvent !== lastEventText) { eventOutput.textContent = latestEvent; lastEventText = latestEvent; }
+      renderText(eventOutput, latestEvent.source, latestEvent.values);
       dialog.dataset.motionScene = sceneName;
       dialog.dataset.motionTime = simulationTime.toFixed(6);
       dialog.dataset.motionPaused = String(isPaused);
@@ -210,6 +224,11 @@
     listen(dialog, 'close', stopFrames);
     listen(dialog, 'cancel', event => { event.preventDefault(); close(); });
     listen(document, 'visibilitychange', () => { stopFrames(); requestFrame(); });
+    listen(document, 'melon:localechange', () => {
+      lastShapeText = '';
+      updateControls();
+      renderScene();
+    });
     for (const button of document.querySelectorAll('[data-open-motion-lab]')) listen(button, 'click', () => open(button.dataset.openMotionLab || sceneName));
 
     // A host can also open this dialog through its own modal router.
@@ -224,12 +243,26 @@
       open, close, reset: resetScene,
       getSnapshot() {
         return {
-          scene: sceneName, time: elapsedSeconds(), playbackRate, isPaused, isOpen: dialog.open,
-          event: latestEvent, mergeCount: sceneGame?.state.mergeCount || 0,
-          bodies: world.bodies.map(body => ({ id: body.id, level: body.level, x: body.x, y: body.y, width: body.maxX - body.minX, height: body.maxY - body.minY, points: body.points.map(point => ({ x: point.x, y: point.y })) }))
+          scene: sceneName,
+          time: elapsedSeconds(),
+          playbackRate,
+          isPaused,
+          isOpen: dialog.open,
+          event: t(latestEvent.source, latestEvent.values),
+          mergeCount: sceneGame?.state.mergeCount || 0,
+          bodies: world.bodies.map(body => ({
+            id: body.id, level: body.level, x: body.x, y: body.y,
+            width: body.maxX - body.minX, height: body.maxY - body.minY,
+            points: body.points.map(point => ({ x: point.x, y: point.y })),
+          }))
         };
       },
-      destroy() { isDestroyed = true; stopFrames(); dialogObserver.disconnect(); for (const removeListener of listeners) removeListener(); }
+      destroy() {
+        isDestroyed = true;
+        stopFrames();
+        dialogObserver.disconnect();
+        for (const removeListener of listeners) removeListener();
+      }
     };
   }
 
