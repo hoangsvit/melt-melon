@@ -102,3 +102,6 @@ jobs:
           grep -q 'Make 2 merges' "$tmpdir/stage.html"
           grep -q '8 drops left' "$tmpdir/stage.html"
           grep -q '🔒 Level 2' "$tmpdir/stage.html"
+          grep -q '★ 0 / 60' "$tmpdir/stage.html"
+          grep -q '☆☆☆' "$tmpdir/stage.html"
+          grep -q '3★ ≤ 6 drops · 2★ ≤ 7 drops' "$tmpdir/stage.html"
