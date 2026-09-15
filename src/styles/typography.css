@@ -1,0 +1,146 @@
+/* Locale-aware typography -------------------------------------------------
+   Keep the game build-free and offline-friendly by preferring native/system
+   fonts before language-specific fallbacks. */
+:root {
+  --font-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-numeric: Georgia, "Times New Roman", serif;
+  --tracking-display: -0.025em;
+  --tracking-label: 0.04em;
+}
+
+html:lang(zh-CN) {
+  --font-ui: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", ui-sans-serif, sans-serif;
+  --font-display: "Songti SC", "STSong", "Noto Serif CJK SC", "Noto Serif SC", serif;
+  --tracking-display: -0.035em;
+  --tracking-label: 0.08em;
+}
+
+html:lang(ja) {
+  --font-ui: "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", Meiryo, "Noto Sans JP", ui-sans-serif, sans-serif;
+  --font-display: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  --tracking-display: -0.025em;
+  --tracking-label: 0.06em;
+}
+
+html:lang(ko) {
+  --font-ui: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", ui-sans-serif, sans-serif;
+  --font-display: "Nanum Myeongjo", "Batang", "Noto Serif KR", serif;
+  --tracking-display: -0.02em;
+  --tracking-label: 0.045em;
+}
+
+html:lang(en),
+html:lang(vi) {
+  --font-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+  --tracking-display: -0.03em;
+  --tracking-label: 0.025em;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
+.wordmark > span:nth-child(2),
+h1,
+.handnote,
+.pause-cover h2,
+.soften-button strong,
+.next-ticket > strong,
+.softness-note p,
+.route-heading > span,
+.paper-dialog h2 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+}
+
+.wordmark > span:nth-child(2) {
+  font-weight: 650;
+  letter-spacing: 0.055em;
+}
+
+.wordmark small,
+.edition,
+.overline,
+.mini-label,
+.score-strip span,
+.page-footer,
+.language-picker {
+  letter-spacing: var(--tracking-label);
+}
+
+.score-strip strong,
+.danger-note strong,
+.coach-step,
+.tank-label,
+.keyboard-note kbd,
+.motion-lab-clock output,
+.motion-lab-shapes {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+h1 {
+  line-height: 1.28;
+  letter-spacing: var(--tracking-display);
+}
+
+.paper-dialog h2,
+.pause-cover h2,
+.softness-note p {
+  line-height: 1.38;
+}
+
+/* Latin copy needs less tracking than the original Chinese-first design. */
+html:lang(en) .wordmark > span:nth-child(2),
+html:lang(vi) .wordmark > span:nth-child(2) {
+  letter-spacing: 0.015em;
+}
+
+html:lang(en) .edition,
+html:lang(vi) .edition,
+html:lang(en) .overline,
+html:lang(vi) .overline,
+html:lang(en) .page-footer,
+html:lang(vi) .page-footer {
+  letter-spacing: 0.035em;
+}
+
+/* Avoid cramped translated labels while keeping the compact visual language. */
+html:not(:lang(zh-CN)) .icon-button,
+html:not(:lang(zh-CN)) .text-button,
+html:not(:lang(zh-CN)) .lesson-link,
+html:not(:lang(zh-CN)) .fruit-step span {
+  line-height: 1.35;
+}
+
+html:not(:lang(zh-CN)) .board-message,
+html:not(:lang(zh-CN)) .coach p,
+html:not(:lang(zh-CN)) .next-ticket > p,
+html:not(:lang(zh-CN)) .dialog-lead,
+html:not(:lang(zh-CN)) .help-rules p {
+  line-height: 1.55;
+}
+
+@media (max-width: 600px) {
+  .wordmark > span:nth-child(2) {
+    letter-spacing: 0.025em;
+  }
+
+  html:lang(en) .wordmark > span:nth-child(2),
+  html:lang(vi) .wordmark > span:nth-child(2) {
+    font-size: 18px;
+  }
+
+  .language-picker select {
+    font-family: var(--font-ui);
+    font-weight: 600;
+  }
+}
