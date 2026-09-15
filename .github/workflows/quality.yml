@@ -18,7 +18,7 @@ jobs:
       - name: Check JavaScript syntax
         shell: bash
         run: find src -name '*.js' -print0 | xargs -0 -n1 node --check
-      - name: Smoke test browser startup and locale override
+      - name: Smoke test browser startup, locale, and difficulty
         shell: bash
         run: |
           set -euo pipefail
@@ -59,3 +59,25 @@ jobs:
           grep -q 'id="language-select"' "$tmpdir/dom.html"
           grep -q 'Move left/right · Release your first fruit' "$tmpdir/dom.html"
           grep -q 'Two Blueberry merge into Grape' "$tmpdir/dom.html"
+          grep -q 'data-difficulty="normal" class="difficulty-option" aria-pressed="true"' "$tmpdir/dom.html"
+
+          "$chrome" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-dev-shm-usage \
+            --user-data-dir="$tmpdir/chrome-hard" \
+            --lang=zh-CN \
+            --virtual-time-budget=5000 \
+            --dump-dom \
+            'http://127.0.0.1:4173/?lang=en&seed=0&difficulty=hard' \
+            >"$tmpdir/hard.html" 2>"$tmpdir/chrome-hard.log"
+
+          grep -q 'data-difficulty="hard"' "$tmpdir/hard.html"
+          grep -q 'data-difficulty="hard" class="difficulty-option" aria-pressed="true"' "$tmpdir/hard.html"
+          grep -q '>Expert</button>' "$tmpdir/hard.html"
+          grep -q 'Less room &amp; energy · 2.1s danger timer' "$tmpdir/hard.html"
+          grep -q 'Soften lasts 2.4s and costs 72 energy' "$tmpdir/hard.html"
+          grep -q 'red line for 2.1s' "$tmpdir/hard.html"
+          grep -q '<strong id="energy-value">45</strong>' "$tmpdir/hard.html"
+          grep -q '14/sec' "$tmpdir/hard.html"
